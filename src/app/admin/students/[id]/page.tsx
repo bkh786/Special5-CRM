@@ -343,14 +343,13 @@ export default function StudentDetailPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: '700' }}>Manage Record</h3>
-              <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Update the student's personal or academic details.</p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Update the student&apos;s personal or academic details.</p>
             </div>
             <button onClick={() => setIsEditing(true)} className="btn btn-secondary" style={{ gap: '0.5rem', backgroundColor: 'white' }}>
               <Edit size={16} /> Edit Student Details
             </button>
           </div>
         )}
-      </div>
       </div>
     </div>
   );
