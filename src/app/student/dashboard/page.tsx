@@ -99,7 +99,7 @@ export default function StudentDashboard() {
            
          if (aData) {
             const evaluatedMap = new Set((scores || []).map(s => s.assessment_id));
-            const pending = aData.filter(a => !evaluatedMap.has(a.id)).slice(0, 3); // top 3 pending
+            const pending = aData.filter(a => !evaluatedMap.has(a.assessment_id || a.id)).slice(0, 3); // top 3 pending
             setPendingAssessments(pending);
          }
       }
@@ -231,7 +231,7 @@ export default function StudentDashboard() {
                   </div>
                 ) : (
                   pendingAssessments.map(a => (
-                    <div key={a.id} style={{ padding: '0.75rem', border: '1px solid var(--card-border)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div key={a.assessment_id || a.id} style={{ padding: '0.75rem', border: '1px solid var(--card-border)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '0.875rem', fontWeight: '500' }}>{a.title}</span>
                       <a href={a.google_form_link} target="_blank" style={{ fontSize: '0.75rem', color: '#d97706', backgroundColor: '#fff7ed', padding: '0.25rem 0.5rem', borderRadius: '12px', textDecoration: 'none' }}>Take Test</a>
                     </div>

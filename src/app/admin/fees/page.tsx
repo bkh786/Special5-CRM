@@ -43,7 +43,8 @@ export default function FeesPage() {
           *,
           students (
             name,
-            class
+            class,
+            phone
           )
         `)
         .order('created_at', { ascending: false });
@@ -59,18 +60,7 @@ export default function FeesPage() {
 
   useEffect(() => {
     fetchFees();
-    const savedQr = localStorage.getItem('global_qr_code_url');
-    if (savedQr) setQrCodeUrl(savedQr);
   }, []);
-
-  const handleSaveQr = () => {
-    setIsSavingQr(true);
-    localStorage.setItem('global_qr_code_url', qrCodeUrl);
-    setTimeout(() => {
-      setIsSavingQr(false);
-      alert('QR Code URL updated successfully!');
-    }, 500);
-  };
 
   const filteredFees = fees.filter(fee => 
     fee.students?.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -80,6 +70,42 @@ export default function FeesPage() {
   const pendingConfirmations = fees.filter(f => !f.paid && (f.screenshot_url || f.pending_transaction_id || f.status === 'Processing'));
   const totalCollected = fees.filter(f => f.paid).reduce((sum, f) => sum + Number(f.amount), 0);
   const pendingTotal = fees.filter(f => !f.paid).reduce((sum, f) => sum + Number(f.amount), 0);
+
+  const outstandingDetails = Object.values(fees.filter(f => !f.paid).reduce((acc, fee) => {
+    const studentId = fee.student_id || fee.students?.name || 'unknown';
+    if (!acc[studentId]) {
+      acc[studentId] = {
+        student: fee.students,
+        total_pending: 0,
+        months: [],
+        fee_records: []
+      };
+    }
+    acc[studentId].total_pending += Number(fee.amount);
+    if (fee.month && !acc[studentId].months.includes(fee.month)) {
+      acc[studentId].months.push(fee.month);
+    }
+    acc[studentId].fee_records.push(fee);
+    return acc;
+  }, {} as Record<string, any>)).filter(d => 
+    (d.student?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const outstandingByStudent = fees.filter(f => !f.paid).reduce((acc, fee) => {
+    const studentId = fee.student_id;
+    if (!acc[studentId]) {
+      acc[studentId] = {
+        student: fee.students,
+        totalAmount: 0,
+        months: [],
+        phone: fee.students?.phone
+      };
+    }
+    acc[studentId].totalAmount += Number(fee.amount);
+    acc[studentId].months.push(fee.month || 'N/A');
+    return acc;
+  }, {} as Record<string, any>);
+  const outstandingList = Object.values(outstandingByStudent);
 
   return (
     <div className="dashboard-content">
@@ -104,13 +130,13 @@ export default function FeesPage() {
                 Method: f.payment_mode,
                 Status: f.paid ? 'Paid' : 'Pending'
               }));
-              exportToCSV(exportData, 'Fees_Export');
+              exportToCSV(exportData, 'Entire_Fee_Database');
             }}
             className="btn btn-secondary"
             style={{ backgroundColor: '#f1f5f9', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
           >
             <Download size={18} />
-            Export Data
+            Export All
           </button>
           <button 
             onClick={() => setIsUploadModalOpen(true)}
@@ -211,93 +237,74 @@ export default function FeesPage() {
         </div>
       </div>
 
-      {/* QR Code Settings */}
-      <div className="card" style={{ marginBottom: '2rem', backgroundColor: '#f8fafc', border: '1px dashed #cbd5e1' }}>
-        <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          Payment Settings
-        </h3>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>Global QR Code URL (For Student Portal)</label>
-            <input 
-              type="url" 
-              placeholder="https://example.com/qr.png" 
-              className="input" 
-              value={qrCodeUrl}
-              onChange={(e) => setQrCodeUrl(e.target.value)}
-            />
-          </div>
-          <button onClick={handleSaveQr} className="btn btn-primary" disabled={isSavingQr}>
-            {isSavingQr ? <Loader2 size={16} className="animate-spin" /> : 'Save URL'}
-          </button>
+      {/* Outstanding Details (Student-wise) */}
+      <div className="card" style={{ marginBottom: '2rem', padding: '0', overflow: 'hidden' }}>
+        <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--card-border)', display: 'flex', gap: '1rem', alignItems: 'center', backgroundColor: '#fffbfa' }}>
+          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', color: '#e11d48', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertCircle size={20} />
+            Outstanding Details (Student-wise)
+          </h3>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ backgroundColor: '#fff1f2', borderBottom: '1px solid #fecdd3' }}>
+              <tr>
+                <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#be123c', textTransform: 'uppercase' }}>Student</th>
+                <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#be123c', textTransform: 'uppercase' }}>Pending Months</th>
+                <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#be123c', textTransform: 'uppercase' }}>Total Due</th>
+                <th style={{ textAlign: 'right', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#be123c', textTransform: 'uppercase' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {outstandingList.length > 0 ? outstandingList.map((record: any, idx: number) => (
+                <tr key={idx} style={{ borderBottom: '1px solid #ffe4e6' }}>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    <div style={{ fontSize: '0.9375rem', fontWeight: '600' }}>{record.student?.name || 'Unknown'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{record.student?.class || 'N/A'}</div>
+                  </td>
+                  <td style={{ padding: '1rem 1.5rem', fontSize: '0.875rem' }}>
+                    {record.months.join(', ')}
+                  </td>
+                  <td style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#e11d48' }}>
+                    ₹{record.totalAmount.toLocaleString()}
+                  </td>
+                  <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                    <button 
+                      onClick={() => {
+                        if (record.phone) {
+                          const phoneStr = record.phone.toString().replace(/\D/g, '');
+                          const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+                          const message = encodeURIComponent(`Hello ${record.student?.name},\nThis is a friendly reminder for your total pending fees of ₹${record.totalAmount} for the months of ${record.months.join(', ')}. Please clear your dues at the earliest.\n\nThank you,\nSpecial5 Team`);
+                          window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+                        } else {
+                          alert('No phone number available for this student.');
+                        }
+                      }}
+                      className="btn" 
+                      style={{ padding: '0.5rem', color: '#25D366', backgroundColor: '#dcf8c6', border: 'none', borderRadius: '6px' }}
+                      title="Send WhatsApp Reminder"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+                    No outstanding fees found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Confirm Payments Section */}
-      {pendingConfirmations.length > 0 && (
-        <div className="card" style={{ marginBottom: '2rem', border: '1px solid #fde047', backgroundColor: '#fefce8' }}>
-          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ca8a04' }}>
-            <AlertCircle size={20} />
-            Confirm Payments ({pendingConfirmations.length})
-          </h3>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead style={{ borderBottom: '1px solid #fef08a' }}>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.75rem', color: '#a16207' }}>Student</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.75rem', color: '#a16207' }}>Amount</th>
-                  <th style={{ textAlign: 'left', padding: '0.75rem', fontSize: '0.75rem', color: '#a16207' }}>Proof / UTR</th>
-                  <th style={{ textAlign: 'right', padding: '0.75rem', fontSize: '0.75rem', color: '#a16207' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingConfirmations.map(fee => (
-                  <tr key={fee.fee_id} style={{ borderBottom: '1px solid #fef08a' }}>
-                    <td style={{ padding: '0.75rem', fontWeight: '500' }}>{fee.students?.name}</td>
-                    <td style={{ padding: '0.75rem', fontWeight: '700' }}>₹{fee.amount}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      {fee.pending_transaction_id ? (
-                        <span style={{ fontWeight: '600', fontFamily: 'monospace' }}>{fee.pending_transaction_id}</span>
-                      ) : fee.screenshot_url ? (
-                        <a href={fee.screenshot_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', fontSize: '0.875rem' }}>View Proof</a>
-                      ) : 'N/A'}
-                    </td>
-                    <td style={{ padding: '0.75rem', textAlign: 'right', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button 
-                        onClick={async () => {
-                          await supabase.from('fees').update({ paid: true, status: 'Paid', payment_date: new Date().toISOString().split('T')[0] }).eq('fee_id', fee.fee_id);
-                          
-                          if (fee.students?.phone) {
-                            const phoneStr = fee.students.phone.toString().replace(/\D/g, '');
-                            const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
-                            const utrRef = fee.pending_transaction_id || 'your transaction';
-                            const message = encodeURIComponent(`Hi ${fee.students.name}, your payment of ₹${fee.amount} with UTR no. ${utrRef} for ${fee.students.name} has been successfully confirmed. Thank you! - Special5 CRM`);
-                            window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
-                          }
-                          
-                          fetchFees();
-                        }}
-                        className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', backgroundColor: '#10b981' }}
-                      >Accept</button>
-                      <button 
-                        onClick={async () => {
-                          await supabase.from('fees').update({ screenshot_url: null, pending_transaction_id: null, status: 'Pending' }).eq('fee_id', fee.fee_id);
-                          fetchFees();
-                        }}
-                        className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: '#ef4444' }}
-                      >Reject</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--card-border)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginRight: 'auto' }}>All Transactions</h3>
+          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginRight: 'auto' }}>Entire Fee Database</h3>
           <div style={{ position: 'relative', width: '280px' }}>
             <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
             <input 

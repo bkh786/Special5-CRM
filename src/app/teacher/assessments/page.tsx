@@ -40,9 +40,9 @@ export default function TeacherPerformanceEntryPage() {
   const handleAssessmentSelect = (assessmentId: string) => {
     setSelectedAssessmentId(assessmentId);
     if (assessmentId) {
-      const asm = assessments.find(a => a.id === assessmentId);
-      if (asm && asm.batch_id && asm.batch_id !== selectedBatchId) {
-        setSelectedBatchId(asm.batch_id);
+      const asm = assessments.find(a => (a.assessment_id || a.id)?.toString() === assessmentId.toString());
+      if (asm && asm.batch_id && asm.batch_id?.toString() !== selectedBatchId?.toString()) {
+        setSelectedBatchId(asm.batch_id?.toString());
       }
     } else {
       setStudents([]);
@@ -51,7 +51,7 @@ export default function TeacherPerformanceEntryPage() {
   };
 
   const filteredAssessments = selectedBatchId 
-    ? assessments.filter(a => a.batch_id === selectedBatchId) 
+    ? assessments.filter(a => a.batch_id?.toString() === selectedBatchId?.toString()) 
     : assessments;
 
   // Load students & existing scores when assessment changes
@@ -225,7 +225,9 @@ export default function TeacherPerformanceEntryPage() {
           >
             <option value="">-- Choose Assessment Topic --</option>
             {filteredAssessments.map(a => (
-              <option key={a.id} value={a.id}>{a.title} ({new Date(a.created_at).toLocaleDateString()})</option>
+              <option key={(a.assessment_id || a.id)?.toString()} value={(a.assessment_id || a.id)?.toString()}>
+                {a.title} ({new Date(a.created_at).toLocaleDateString()})
+              </option>
             ))}
           </select>
         </div>
@@ -243,6 +245,24 @@ export default function TeacherPerformanceEntryPage() {
                   <GraduationCap size={20} />
                 </div>
                 <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>Evaluation Roster</h2>
+                {selectedAssessmentId && (() => {
+                  const activeAsm = assessments.find(a => (a.assessment_id || a.id)?.toString() === selectedAssessmentId?.toString());
+                  if (activeAsm?.google_form_link) {
+                    return (
+                      <a 
+                        href={activeAsm.google_form_link} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="btn btn-secondary" 
+                        style={{ marginLeft: '1rem', fontSize: '0.75rem', padding: '0.25rem 0.75rem', backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}
+                      >
+                        <ExternalLink size={14} style={{ marginRight: '0.25rem' }} />
+                        Launch / View Form
+                      </a>
+                    )
+                  }
+                  return null;
+                })()}
               </div>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button 

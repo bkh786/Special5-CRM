@@ -60,6 +60,20 @@ export default function StudentFeesPage() {
         <p style={{ color: 'var(--muted)' }}>Manage your invoices, scan QR for UPI payment, and upload UTRs for confirmation.</p>
       </div>
 
+      {fees.filter(f => f.status === 'Pending').length > 0 && (
+        <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '1rem 1.25rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ backgroundColor: '#f97316', color: 'white', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Clock size={16} />
+          </div>
+          <div>
+            <h3 style={{ fontWeight: '700', color: '#c2410c', margin: 0, fontSize: '1rem' }}>Payment Reminder</h3>
+            <p style={{ color: '#ea580c', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
+              You have {fees.filter(f => f.status === 'Pending').length} pending fee invoice(s). Please clear them to ensure uninterrupted access.
+            </p>
+          </div>
+        </div>
+      )}
+
       <ActionModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
