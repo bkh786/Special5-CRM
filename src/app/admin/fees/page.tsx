@@ -71,7 +71,7 @@ export default function FeesPage() {
   const totalCollected = fees.filter(f => f.paid).reduce((sum, f) => sum + Number(f.amount), 0);
   const pendingTotal = fees.filter(f => !f.paid).reduce((sum, f) => sum + Number(f.amount), 0);
 
-  const outstandingDetails = Object.values(fees.filter(f => !f.paid).reduce((acc, fee) => {
+  const outstandingDetails = (Object.values(fees.filter(f => !f.paid).reduce((acc, fee) => {
     const studentId = fee.student_id || fee.students?.name || 'unknown';
     if (!acc[studentId]) {
       acc[studentId] = {
@@ -86,8 +86,7 @@ export default function FeesPage() {
       acc[studentId].months.push(fee.month);
     }
     acc[studentId].fee_records.push(fee);
-    return acc;
-  }, {} as Record<string, any>)).filter(d => 
+  }, {} as Record<string, any>)) as any[]).filter((d: any) => 
     (d.student?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
