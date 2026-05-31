@@ -24,7 +24,8 @@ export default function StudentRatingPage() {
       
       if (batchIds.length > 0) {
         // Find teachers of those batches
-        const { data: tData } = await supabase.from('batches').select('teacher_id, teachers(name, subjects), batch_id').in('batch_id', batchIds);
+        const { data: tData, error: tErr } = await supabase.from('batches').select('teacher_id, batch_id, subject, teachers(name)').in('batch_id', batchIds);
+        if (tErr) console.error('Error fetching teachers for rating:', tErr);
         
         // Find if already rated this month
         const startOfMonth = new Date();
@@ -47,7 +48,7 @@ export default function StudentRatingPage() {
                teacher_id: t.teacher_id,
                batch_id: t.batch_id,
                name: tObj?.name || 'Assigned Instructor',
-               subjects: tObj?.subjects || 'General',
+               subjects: t.subject || 'General',
                alreadyRated: ratedTeacherIds.has(t.teacher_id)
              };
           })
