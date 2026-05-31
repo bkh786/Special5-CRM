@@ -154,22 +154,47 @@ We look forward to working together to deliver high-quality learning experiences
 
   if (success) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
-          backgroundColor: '#ecfdf5',
-          color: '#10b981',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '1.5rem'
-        }}>
-          <CheckCircle size={32} />
+      <div style={{ padding: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem'
+          }}>
+            <CheckCircle size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Teacher Hired!</h3>
+          <p style={{ color: '#64748b' }}>Faculty member {formData.name} added successfully.</p>
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Teacher Hired!</h3>
-        <p style={{ color: '#64748b', marginBottom: '2rem' }}>Faculty member {formData.name} added successfully.</p>
+
+        <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: '600', color: '#334155', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Teacher Details</h4>
+          <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div><span style={{ color: '#64748b' }}>Name:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{formData.name}</span></div>
+            <div><span style={{ color: '#64748b' }}>Subjects:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{formData.subjects || 'N/A'}</span></div>
+            <div><span style={{ color: '#64748b' }}>Classes:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{formData.classes || 'N/A'}</span></div>
+          </div>
+
+          <h4 style={{ fontWeight: '600', color: '#334155', marginTop: '1.5rem', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Per Student Pass-On Fee</h4>
+          <div className="grid grid-cols-3 gap-y-3 gap-x-6 text-sm">
+            <div><span style={{ color: '#64748b' }}>Class 1-4:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{formData.class_1_to_4_rate || 0}</span></div>
+            <div><span style={{ color: '#64748b' }}>Class 5-8:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{formData.class_5_to_8_rate || 0}</span></div>
+            <div><span style={{ color: '#64748b' }}>Class 9-10:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{formData.class_9_to_10_rate || 0}</span></div>
+          </div>
+
+          <h4 style={{ fontWeight: '600', color: '#334155', marginTop: '1.5rem', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Login Credentials</h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div><span style={{ color: '#64748b' }}>Login URL:</span> <a href="https://crm.special5.in/" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: '500' }}>https://crm.special5.in/</a></div>
+            <div><span style={{ color: '#64748b' }}>User ID / Email:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{formData.email}</span></div>
+            <div><span style={{ color: '#64748b' }}>Password:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>Special5@1234</span></div>
+          </div>
+        </div>
         
         <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
           {whatsappLink && (
@@ -177,10 +202,7 @@ We look forward to working together to deliver high-quality learning experiences
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => {
-                // Do not prevent default, allow the link to open natively
-                setTimeout(() => onSuccess(), 1000);
-              }} 
+              onClick={onSuccess} 
               className="btn" 
               style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none' }}
             >
@@ -188,6 +210,7 @@ We look forward to working together to deliver high-quality learning experiences
             </a>
           )}
           <button 
+            type="button"
             onClick={onSuccess} 
             className="btn btn-secondary" 
             style={{ flex: whatsappLink ? 0.4 : 1 }}

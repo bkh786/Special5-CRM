@@ -13,6 +13,7 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState('');
+  const [generatedEmail, setGeneratedEmail] = useState('');
   
   const [batches, setBatches] = useState<any[]>([]);
   
@@ -48,6 +49,7 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
     try {
       // 1. Call API to create Auth Account and write to Students table
       const finalEmail = formData.email || `${lead.student_name.replace(/\s+/g, '').toLowerCase()}${Math.floor(Math.random() * 1000)}@student.com`;
+      setGeneratedEmail(finalEmail);
       const res = await fetch('/api/admin/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -137,23 +139,46 @@ We look forward to being a part of your academic journey and helping you achieve
   };
 
   if (success) {
+    const batchDetails = batches.find(b => b.batch_id === formData.batchId);
     return (
-      <div style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
-          backgroundColor: '#ecfdf5',
-          color: '#10b981',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '1.5rem'
-        }}>
-          <CheckCircle size={32} />
+      <div style={{ padding: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem'
+          }}>
+            <CheckCircle size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Student Onboarded!</h3>
+          <p style={{ color: '#64748b' }}>{lead.student_name} has been successfully converted into a student.</p>
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Student Onboarded!</h3>
-        <p style={{ color: '#64748b', marginBottom: '2rem' }}>{lead.student_name} has been successfully converted into a student.</p>
+
+        <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: '600', color: '#334155', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Student Details</h4>
+          <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div><span style={{ color: '#64748b' }}>Name:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{lead.student_name}</span></div>
+            <div><span style={{ color: '#64748b' }}>Class:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{lead.class}</span></div>
+            <div><span style={{ color: '#64748b' }}>Batch Timing:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{batchDetails?.timing || 'TBD'}</span></div>
+            <div><span style={{ color: '#64748b' }}>Monthly Fee:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{formData.monthly_fee}</span></div>
+            <div><span style={{ color: '#64748b' }}>Fee Plan:</span> <span style={{ fontWeight: '500', color: '#0f172a', textTransform: 'capitalize' }}>{formData.feesPlan}</span></div>
+            <div><span style={{ color: '#64748b' }}>Date of Joining:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{formData.dateOfJoining}</span></div>
+            <div className="col-span-2"><span style={{ color: '#64748b' }}>Subjects:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{formData.subjects}</span></div>
+          </div>
+
+          <h4 style={{ fontWeight: '600', color: '#334155', marginTop: '1.5rem', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Login Credentials</h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div><span style={{ color: '#64748b' }}>Login URL:</span> <a href="https://crm.special5.in/" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: '500' }}>https://crm.special5.in/</a></div>
+            <div><span style={{ color: '#64748b' }}>User ID / Email:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{generatedEmail}</span></div>
+            <div><span style={{ color: '#64748b' }}>Password:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>Special5@1234</span></div>
+          </div>
+        </div>
         
         <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
           {whatsappLink && (
@@ -161,10 +186,7 @@ We look forward to being a part of your academic journey and helping you achieve
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => {
-                // Do not prevent default, allow the link to open natively
-                setTimeout(() => onSuccess(), 1000);
-              }} 
+              onClick={onSuccess} 
               className="btn" 
               style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none' }}
             >
@@ -172,6 +194,7 @@ We look forward to being a part of your academic journey and helping you achieve
             </a>
           )}
           <button 
+            type="button"
             onClick={onSuccess} 
             className="btn btn-secondary" 
             style={{ flex: whatsappLink ? 0.4 : 1 }}
