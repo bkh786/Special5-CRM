@@ -44,6 +44,7 @@ export default function StudentClassesPage() {
            }));
            setBatches(enriched);
         }
+      }
       setLoading(false);
     }
     loadBatches();
