@@ -142,7 +142,7 @@ export default function StudentPerformancePage() {
             <select className="input" value={selectedAssessmentId} onChange={e => setSelectedAssessmentId(e.target.value)}>
               <option value="">-- Choose Assessment --</option>
               {assessments.map(a => (
-                <option key={a.id} value={a.id}>{a.title} ({new Date(a.created_at).toLocaleDateString()})</option>
+                <option key={a.assessment_id || a.id} value={a.assessment_id || a.id}>{a.title} ({new Date(a.created_at).toLocaleDateString()})</option>
               ))}
             </select>
           )}

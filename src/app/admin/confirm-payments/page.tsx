@@ -5,12 +5,15 @@ import { supabase } from '@/lib/supabase-client';
 import { CheckCircle2, XCircle, Search, RefreshCw, CreditCard, Banknote, Download } from 'lucide-react';
 import ActionModal from '@/components/common/ActionModal';
 import { exportToCSV } from '@/utils/exportToCSV';
+import { Settings } from 'lucide-react';
 
 export default function ConfirmPaymentsPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [remark, setRemark] = useState('');
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [isSavingQr, setIsSavingQr] = useState(false);
   
   const fetchTransactions = async () => {
     setLoading(true);
@@ -25,7 +28,18 @@ export default function ConfirmPaymentsPage() {
 
   useEffect(() => {
     fetchTransactions();
+    const savedQr = localStorage.getItem('global_qr_code_url');
+    if (savedQr) setQrCodeUrl(savedQr);
   }, []);
+
+  const handleSaveQr = () => {
+    setIsSavingQr(true);
+    localStorage.setItem('global_qr_code_url', qrCodeUrl);
+    setTimeout(() => {
+      setIsSavingQr(false);
+      alert('QR Code URL updated successfully!');
+    }, 500);
+  };
 
   const handleUpdateStatus = async (status: string) => {
     if (!selectedTx) return;
@@ -45,10 +59,13 @@ export default function ConfirmPaymentsPage() {
         admin_remarks: remark
       }).eq('fee_id', selectedTx.fee_id);
 
-      if (selectedTx.students?.phone) {
-        const phoneStr = selectedTx.students.phone.toString().replace(/\D/g, '');
+      // WhatsApp Confirmation Draft
+      if (selectedTx.students?.profiles?.phone || selectedTx.students?.phone) {
+        const phone = selectedTx.students?.profiles?.phone || selectedTx.students?.phone;
+        const phoneStr = phone.toString().replace(/\D/g, '');
         const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
-        const message = encodeURIComponent(`Hi ${selectedTx.students.name}, your payment of ₹${selectedTx.amount} for ${selectedTx.fees?.month || 'the month'} has been successfully confirmed. Thank you! - Special5 CRM`);
+        const utrRef = selectedTx.utr || selectedTx.upi_id || 'your transaction';
+        const message = encodeURIComponent(`Hi ${selectedTx.students.name}, your payment of ₹${selectedTx.amount} with UTR no. ${utrRef} for ${selectedTx.students.name} has been successfully confirmed. Thank you! - Special5 CRM`);
         window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
       }
     } else if (status === 'Rejected') {
@@ -65,15 +82,16 @@ export default function ConfirmPaymentsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700' }}>Confirm Payment Status</h1>
           <p style={{ color: 'var(--muted)' }}>Verify and approve parent UTR/UPI payment submissions.</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button onClick={fetchTransactions} className="btn btn-secondary">
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={fetchTransactions} className="btn btn-secondary">
+              <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
+            </button>
           <button 
             onClick={() => {
               if (!transactions.length) return;
@@ -94,6 +112,21 @@ export default function ConfirmPaymentsPage() {
             <Download size={18} />
             Export Data
           </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', padding: '0.5rem', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+            <Settings size={16} color="var(--muted)" />
+            <input 
+              type="url" 
+              placeholder="Global QR Code URL" 
+              className="input" 
+              style={{ padding: '0.25rem 0.5rem', height: '30px', fontSize: '0.75rem', width: '200px' }}
+              value={qrCodeUrl}
+              onChange={(e) => setQrCodeUrl(e.target.value)}
+            />
+            <button onClick={handleSaveQr} className="btn btn-primary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', height: '30px' }} disabled={isSavingQr}>
+              {isSavingQr ? 'Saving...' : 'Save QR URL'}
+            </button>
+          </div>
         </div>
       </div>
 

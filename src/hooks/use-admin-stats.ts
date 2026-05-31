@@ -150,40 +150,44 @@ export function useRevenueTrends() {
           supabase.from('teacher_earnings').select('*')
         ]);
         
-        const monthlyData: Record<string, any> = {};
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const today = new Date();
+        const trendDataMap = new Map();
         
-        months.forEach(m => {
-          monthlyData[m] = { month: m, revenue: 0, cost: 0, net_margin: 0 };
+        const last6 = Array.from({length: 6}).map((_, i) => {
+          const d = new Date(today.getFullYear(), today.getMonth() - 5 + i, 1);
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          const item = { month: months[d.getMonth()], revenue: 0, cost: 0, net_margin: 0 };
+          trendDataMap.set(key, item);
+          return { key, item };
         });
 
-        (fees || []).forEach(f => {
-          if (!f.paid || !f.created_at) return;
-          const d = new Date(f.created_at);
-          const mName = months[d.getMonth()];
-          if (monthlyData[mName]) {
-            monthlyData[mName].revenue += Number(f.amount) || 0;
+        (fees || []).forEach((f: any) => {
+          if (!f.paid) return;
+          const d = f.payment_date ? new Date(f.payment_date) : new Date(f.created_at);
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          if (trendDataMap.has(key)) {
+            trendDataMap.get(key).revenue += Number(f.amount || 0);
           }
         });
 
-        (earnings || []).forEach(e => {
-          if (!e.created_at) return;
+        (earnings || []).forEach((e: any) => {
           const d = new Date(e.created_at);
-          const mName = months[d.getMonth()];
-          if (monthlyData[mName]) {
-            monthlyData[mName].cost += Number(e.earning_amount) || 0;
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          if (trendDataMap.has(key)) {
+            trendDataMap.get(key).cost += Number(e.earning_amount || 0);
           }
         });
 
-        const trendData = months.map(m => {
-          const rev = monthlyData[m].revenue;
-          const cost = monthlyData[m].cost;
-          return {
-            month: m,
-            revenue: rev,
-            cost: cost,
-            net_margin: rev - cost
-          };
+        const trendData = last6.map(({ item }) => {
+          item.net_margin = item.revenue - item.cost;
+          // Add a tiny fallback value so empty charts still render flat lines
+          if (item.revenue === 0 && item.cost === 0) {
+            item.revenue = 0.1;
+            item.cost = 0.1;
+            item.net_margin = 0.1;
+          }
+          return item;
         });
 
         setTrends(trendData);
@@ -209,25 +213,37 @@ export function useLeadTrends() {
         const { data: leads } = await supabase.from('leads').select('*');
         
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthlyData: Record<string, any> = {};
+        const today = new Date();
+        const trendDataMap = new Map();
         
-        months.forEach(m => {
-          monthlyData[m] = { month: m, incoming_leads: 0, converted_leads: 0 };
+        const last6 = Array.from({length: 6}).map((_, i) => {
+          const d = new Date(today.getFullYear(), today.getMonth() - 5 + i, 1);
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          const item = { month: months[d.getMonth()], incoming_leads: 0, converted_leads: 0 };
+          trendDataMap.set(key, item);
+          return { key, item };
         });
 
-        (leads || []).forEach(l => {
-          if (!l.created_at) return;
+        (leads || []).forEach((l: any) => {
           const d = new Date(l.created_at);
-          const mName = months[d.getMonth()];
-          if (monthlyData[mName]) {
-            monthlyData[mName].incoming_leads += 1;
+          const key = `${d.getFullYear()}-${d.getMonth()}`;
+          if (trendDataMap.has(key)) {
+            trendDataMap.get(key).incoming_leads += 1;
             if (l.status === 'Converted') {
-              monthlyData[mName].converted_leads += 1;
+               trendDataMap.get(key).converted_leads += 1;
             }
           }
         });
 
-        setTrends(months.map(m => monthlyData[m]));
+        const trendData = last6.map(({ item }) => {
+          if (item.incoming_leads === 0 && item.converted_leads === 0) {
+            item.incoming_leads = 0.1;
+            item.converted_leads = 0.1;
+          }
+          return item;
+        });
+
+        setTrends(trendData);
       } catch (err) {
         console.error('Error fetching lead trends:', err);
       } finally {
