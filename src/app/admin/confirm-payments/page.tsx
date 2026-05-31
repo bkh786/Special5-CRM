@@ -62,6 +62,7 @@ export default function ConfirmPaymentsPage() {
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700' }}>Confirm Payment Status</h1>
           <p style={{ color: 'var(--muted)' }}>Verify and approve parent UTR/UPI payment submissions.</p>
+        </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={fetchTransactions} className="btn btn-secondary">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh

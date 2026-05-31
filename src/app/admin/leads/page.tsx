@@ -20,7 +20,6 @@ import {
 import { supabase } from '@/lib/supabase-client';
 import ActionModal from '@/components/common/ActionModal';
 import LeadForm from '@/components/forms/LeadForm';
-import LeadForm from '@/components/forms/LeadForm';
 import LeadConversionForm from '@/components/forms/LeadConversionForm';
 import LeadBulkUploadForm from '@/components/forms/LeadBulkUploadForm';
 import { exportToCSV } from '@/utils/exportToCSV';

@@ -61,6 +61,7 @@ export default function ComplaintsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
           <button 
             onClick={() => {
               if (!filteredData.length) return;

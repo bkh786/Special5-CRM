@@ -82,6 +82,7 @@ export default function TeacherEarningsPage() {
             Export Data
           </button>
         </div>
+      </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
