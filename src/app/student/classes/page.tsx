@@ -17,13 +17,33 @@ export default function StudentClassesPage() {
       const { data: bData } = await supabase.from('batch_students').select('batch_id').eq('student_id', user.id);
       const batchIds = bData?.map(b => b.batch_id) || [];
       if (batchIds.length > 0) {
-        // Fetch batches via relations
-        const { data } = await supabase
+        const { data, error } = await supabase
            .from('batches')
-           .select('*, teachers(name)')
+           .select('*')
            .in('batch_id', batchIds);
-        if (data) setBatches(data);
-      }
+           
+        if (error) {
+           console.error('Error fetching batches:', error);
+        }
+
+        if (data && data.length > 0) {
+           const teacherIds = data.map(b => b.teacher_id).filter(Boolean);
+           let tMap = new Map();
+           
+           if (teacherIds.length > 0) {
+              const { data: tData } = await supabase
+                .from('teachers')
+                .select('teacher_id, name')
+                .in('teacher_id', teacherIds);
+              tMap = new Map(tData?.map(t => [t.teacher_id, t.name]) || []);
+           }
+
+           const enriched = data.map(b => ({
+             ...b,
+             teachers: { name: tMap.get(b.teacher_id) || 'TBD' }
+           }));
+           setBatches(enriched);
+        }
       setLoading(false);
     }
     loadBatches();
