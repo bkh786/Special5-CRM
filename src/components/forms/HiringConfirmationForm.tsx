@@ -43,9 +43,6 @@ export default function HiringConfirmationForm({ teacher, onSuccess, onCancel }:
       if (!res.ok) throw new Error(data.error || 'Failed to hire teacher');
 
       setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 2000);
     } catch (err: any) {
       console.error('Error hiring teacher:', err);
       setError(err.message || 'An unexpected error occurred');
@@ -55,23 +52,93 @@ export default function HiringConfirmationForm({ teacher, onSuccess, onCancel }:
   };
 
   if (success) {
+    const phoneStr = teacher.phone ? teacher.phone.toString().replace(/\D/g, '') : '';
+    const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+    
+    const message = `Hello *${teacher.name}*,
+
+Welcome to *Special5 Online Tuitions*! 🎉
+
+Your faculty account has been successfully created.
+
+🔐 *CRM Login Details*
+
+• User ID: ${teacher.email}
+• Password: Special5@1234
+
+🌐 CRM Login URL: https://crm.special5.in/
+
+We look forward to a great teaching journey together!
+
+*Thank You!*
+*Special5 Online Tuitions*`;
+
+    const whatsappLink = formattedPhone ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}` : '';
+
     return (
-      <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-        <div style={{ 
-          width: '64px', 
-          height: '64px', 
-          backgroundColor: '#f0fdf4', 
-          color: '#16a34a', 
-          borderRadius: '50%', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          margin: '0 auto 1rem' 
-        }}>
-          <CheckCircle size={32} />
+      <div style={{ padding: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            backgroundColor: '#f0fdf4',
+            color: '#16a34a',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1rem'
+          }}>
+            <CheckCircle size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Success!</h3>
+          <p style={{ color: '#64748b' }}>{teacher.name} has been hired and their account is ready.</p>
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Success!</h3>
-        <p style={{ color: '#64748b' }}>{teacher.name} has been hired and their account is ready.</p>
+
+        <div style={{ backgroundColor: '#f8fafc', padding: '1.5rem', borderRadius: '8px', marginBottom: '2rem' }}>
+          <h4 style={{ fontWeight: '600', color: '#334155', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Teacher Details</h4>
+          <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm">
+            <div><span style={{ color: '#64748b' }}>Name:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{teacher.name}</span></div>
+            <div><span style={{ color: '#64748b' }}>Subjects:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{teacher.subjects || 'N/A'}</span></div>
+          </div>
+
+          <h4 style={{ fontWeight: '600', color: '#334155', marginTop: '1.5rem', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Per Student Pass-On Fee</h4>
+          <div className="grid grid-cols-3 gap-y-3 gap-x-6 text-sm">
+            <div><span style={{ color: '#64748b' }}>Class 1-4:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{rate1to4 || 0}</span></div>
+            <div><span style={{ color: '#64748b' }}>Class 5-8:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{rate5to8 || 0}</span></div>
+            <div><span style={{ color: '#64748b' }}>Class 9-10:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>₹{rate9to10 || 0}</span></div>
+          </div>
+
+          <h4 style={{ fontWeight: '600', color: '#334155', marginTop: '1.5rem', marginBottom: '1rem', paddingBottom: '0.5rem', borderBottom: '1px solid #e2e8f0' }}>Login Credentials</h4>
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div><span style={{ color: '#64748b' }}>Login URL:</span> <a href="https://crm.special5.in/" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: '500' }}>https://crm.special5.in/</a></div>
+            <div><span style={{ color: '#64748b' }}>User ID / Email:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>{teacher.email}</span></div>
+            <div><span style={{ color: '#64748b' }}>Password:</span> <span style={{ fontWeight: '500', color: '#0f172a' }}>Special5@1234</span></div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+          {whatsappLink && (
+            <a 
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onSuccess} 
+              className="btn" 
+              style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none' }}
+            >
+              <Phone size={18} /> Send Onboarding Message
+            </a>
+          )}
+          <button 
+            type="button"
+            onClick={onSuccess} 
+            className="btn btn-secondary" 
+            style={{ flex: whatsappLink ? 0.4 : 1 }}
+          >
+            Ignore
+          </button>
+        </div>
       </div>
     );
   }
