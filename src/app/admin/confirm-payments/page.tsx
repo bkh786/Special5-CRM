@@ -88,6 +88,7 @@ export default function ConfirmPaymentsPage() {
             Export Data
           </button>
         </div>
+      </div>
 
       <ActionModal
         isOpen={!!selectedTx}
