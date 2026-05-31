@@ -157,16 +157,19 @@ We look forward to being a part of your academic journey and helping you achieve
         
         <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
           {whatsappLink && (
-            <button 
-              onClick={() => {
-                window.open(whatsappLink, '_blank');
-                onSuccess();
+            <a 
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                // Do not prevent default, allow the link to open natively
+                setTimeout(() => onSuccess(), 1000);
               }} 
               className="btn" 
-              style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none' }}
             >
               <MessageCircle size={18} /> Send Onboarding Message
-            </button>
+            </a>
           )}
           <button 
             onClick={onSuccess} 
