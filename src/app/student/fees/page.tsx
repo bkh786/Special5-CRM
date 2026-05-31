@@ -27,8 +27,16 @@ export default function StudentFeesPage() {
       setLoading(false);
     }
     loadFees();
-    const savedQr = localStorage.getItem('global_qr_code_url');
-    if (savedQr) setGlobalQrUrl(savedQr);
+    async function loadQrUrl() {
+      try {
+        const res = await fetch('/api/admin/upi');
+        const data = await res.json();
+        if (data.upi_link) setGlobalQrUrl(data.upi_link);
+      } catch (err) {
+        console.error('Failed to load QR code link', err);
+      }
+    }
+    loadQrUrl();
   }, [user]);
 
   const handlePayRequest = (fee: any) => {

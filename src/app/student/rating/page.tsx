@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Star, MessageSquare, Loader2, CheckCircle } from 'lucide-react';
+import { Star, MessageSquare, Loader2, CheckCircle, User } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/lib/supabase-client';
 
@@ -9,9 +9,12 @@ export default function StudentRatingPage() {
   const { user } = useAuth();
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [ratingVals, setRatingVals] = useState<Record<string, number>>({});
-  const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
+  
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+  const [ratingVal, setRatingVal] = useState<number>(0);
+  const [feedback, setFeedback] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     async function fetchTeachers() {
@@ -60,68 +63,92 @@ export default function StudentRatingPage() {
     fetchTeachers();
   }, [user]);
 
-  const handleSubmit = async (teacherId: string, batchId: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user) return;
-    const rate = ratingVals[teacherId] || 0;
-    if (rate === 0) return alert("Select a star rating first.");
+    if (!selectedTeacherId) return alert("Please select a teacher from the dropdown menu.");
+    if (ratingVal === 0) return alert("Please select a star rating.");
 
-    setSubmitting(prev => ({...prev, [teacherId]: true}));
+    const teacher = teachers.find(t => t.teacher_id === selectedTeacherId);
+    if (!teacher) return;
+
+    setSubmitting(true);
+    setSuccessMsg('');
 
     await supabase.from('ratings').insert([{
       student_id: user.id,
-      teacher_id: teacherId,
-      batch_id: batchId,
-      rating: rate,
-      feedback: feedbacks[teacherId] || ''
+      teacher_id: selectedTeacherId,
+      batch_id: teacher.batch_id,
+      rating: ratingVal,
+      feedback: feedback
     }]);
 
-    setTeachers(prev => prev.map(t => t.teacher_id === teacherId ? {...t, alreadyRated: true} : t));
-    setSubmitting(prev => ({...prev, [teacherId]: false}));
+    setTeachers(prev => prev.map(t => t.teacher_id === selectedTeacherId ? {...t, alreadyRated: true} : t));
+    setSubmitting(false);
+    setSuccessMsg(`Thank you! Your rating for ${teacher.name} has been submitted.`);
+    setSelectedTeacherId('');
+    setRatingVal(0);
+    setFeedback('');
   };
 
+  const pendingTeachers = teachers.filter(t => !t.alreadyRated);
+  const ratedTeachers = teachers.filter(t => t.alreadyRated);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '600px', margin: '0 auto' }}>
       <div style={{ textAlign: 'center' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: '700' }}>Teacher Rating</h1>
-        <p style={{ color: 'var(--muted)' }}>Submit feedback for your assigned faculty once per month to help us improve.</p>
+        <p style={{ color: 'var(--muted)' }}>Select a teacher from the drop-down menu and submit your feedback once per month.</p>
       </div>
 
       {loading ? (
         <div style={{ padding: '4rem', textAlign: 'center' }}><Loader2 className="animate-spin" size={32} color="var(--primary)" style={{ margin: '0 auto' }} /></div>
-      ) : teachers.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', color: 'var(--muted)' }}>No teachers mapped to you currently.</div>
+      ) : pendingTeachers.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', color: 'var(--muted)' }}>
+          {ratedTeachers.length > 0 ? "You have already rated all your assigned teachers this month." : "No teachers mapped to you currently."}
+        </div>
       ) : (
-        teachers.map(teacher => (
-          <div key={teacher.teacher_id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', opacity: teacher.alreadyRated ? 0.6 : 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '1.5rem', borderBottom: '1px solid var(--card-border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem'}}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', fontWeight: 'bold' }}>
-                  {teacher.name?.charAt(0) || 'T'}
-                </div>
-                <div>
-                  <h3 style={{ fontWeight: '600' }}>{teacher.name}</h3>
-                  <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>{teacher.subjects}</p>
-                </div>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {successMsg && (
+            <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600' }}>
+              <CheckCircle size={20} /> {successMsg}
+            </div>
+          )}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="form-group">
+              <label style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'block' }}>Select Teacher</label>
+              <div style={{ position: 'relative' }}>
+                <User size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--muted)' }} />
+                <select 
+                  className="input" 
+                  style={{ paddingLeft: '2.5rem', width: '100%', appearance: 'auto' }}
+                  value={selectedTeacherId}
+                  onChange={(e) => setSelectedTeacherId(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>-- Select a teacher --</option>
+                  {pendingTeachers.map(t => (
+                    <option key={t.teacher_id} value={t.teacher_id}>
+                      {t.name} ({t.subjects})
+                    </option>
+                  ))}
+                </select>
               </div>
-              {teacher.alreadyRated && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#059669', backgroundColor: '#ecfdf5', padding: '0.5rem 1rem', borderRadius: '8px', fontWeight: '600' }}>
-                  <CheckCircle size={18} /> Rated This Month
-                </div>
-              )}
             </div>
 
-            {!teacher.alreadyRated && (
+            {selectedTeacherId && (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', margin: '1rem 0' }}>
                   <label style={{ fontWeight: '600' }}>Rate your experience</label>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     {[1, 2, 3, 4, 5].map((s) => (
                       <button 
                         key={s} 
-                        onClick={() => setRatingVals(prev => ({...prev, [teacher.teacher_id]: s}))}
-                        style={{ color: (ratingVals[teacher.teacher_id] || 0) >= s ? '#f59e0b' : '#cbd5e1' }}
+                        type="button"
+                        onClick={() => setRatingVal(s)}
+                        style={{ color: ratingVal >= s ? '#f59e0b' : '#cbd5e1' }}
                       >
-                        <Star size={32} fill={(ratingVals[teacher.teacher_id] || 0) >= s ? '#f59e0b' : 'transparent'} />
+                        <Star size={40} fill={ratingVal >= s ? '#f59e0b' : 'transparent'} />
                       </button>
                     ))}
                   </div>
@@ -134,21 +161,40 @@ export default function StudentRatingPage() {
                     <textarea 
                       className="input" 
                       placeholder="Tell us what you like or what can be improved..."
-                      rows={3}
+                      rows={4}
                       style={{ paddingLeft: '2.5rem', resize: 'vertical' }}
-                      value={feedbacks[teacher.teacher_id] || ''}
-                      onChange={(e) => setFeedbacks(prev => ({ ...prev, [teacher.teacher_id]: e.target.value }))}
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
                     />
                   </div>
                 </div>
 
-                <button onClick={() => handleSubmit(teacher.teacher_id, teacher.batch_id)} disabled={submitting[teacher.teacher_id]} className="btn btn-primary" style={{ width: '100%', padding: '0.875rem' }}>
-                   {submitting[teacher.teacher_id] ? <Loader2 className="animate-spin" size={18} /> : 'Submit Rating'}
+                <button type="submit" disabled={submitting || ratingVal === 0} className="btn btn-primary" style={{ width: '100%', padding: '0.875rem' }}>
+                   {submitting ? <Loader2 className="animate-spin" size={18} /> : 'Submit Rating'}
                 </button>
               </>
             )}
+          </form>
+        </div>
+      )}
+      
+      {ratedTeachers.length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: 'var(--muted)' }}>Already Rated This Month</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {ratedTeachers.map(t => (
+              <div key={t.teacher_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+                <div>
+                  <div style={{ fontWeight: '600' }}>{t.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{t.subjects}</div>
+                </div>
+                <div style={{ color: '#059669', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                  <CheckCircle size={16} /> Rated
+                </div>
+              </div>
+            ))}
           </div>
-        ))
+        </div>
       )}
     </div>
   );

@@ -137,7 +137,8 @@ export default function StudentAttendancePage() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+            {renderCalendar(3)}
             {renderCalendar(2)}
             {renderCalendar(1)}
             {renderCalendar(0)}

@@ -109,8 +109,10 @@ export default function TeachersPage() {
     const matchesSearch = teacher.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           teacher.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           teacher.subjects?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesHiring = filterHiringStatus === 'all' || (teacher.hiring_status || 'applied') === filterHiringStatus;
-    const matchesWorking = filterWorkingStatus === 'all' || (teacher.working_status || 'Active') === filterWorkingStatus;
+    const matchesHiring = filterHiringStatus === 'all' || 
+                          (teacher.hiring_status || 'applied').toLowerCase() === filterHiringStatus.toLowerCase();
+    const matchesWorking = filterWorkingStatus === 'all' || 
+                           (teacher.working_status || 'Active').toLowerCase() === filterWorkingStatus.toLowerCase();
     
     return matchesSearch && matchesHiring && matchesWorking;
   });

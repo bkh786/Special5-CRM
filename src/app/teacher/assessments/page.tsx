@@ -217,17 +217,27 @@ export default function TeacherPerformanceEntryPage() {
         </div>
         
         <div style={{ flex: 1 }}>
-          <label style={{ fontSize: '0.875rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Select Assesment Payload</label>
+          <label style={{ fontSize: '0.875rem', fontWeight: '600', display: 'block', marginBottom: '0.5rem' }}>Select Assessment Payload</label>
           <select 
             className="input" 
             value={selectedAssessmentId}
             onChange={(e) => handleAssessmentSelect(e.target.value)}
+            disabled={filteredAssessments.length === 0}
           >
-            <option value="">-- Choose Assessment Topic --</option>
+            <option value="">
+              {filteredAssessments.length === 0 
+                ? (selectedBatchId ? "-- No assessments found for this batch --" : "-- No assessments found --") 
+                : "-- Choose Assessment Topic --"}
+            </option>
             {filteredAssessments.map(a => (
               <option key={a.id} value={a.id}>{a.title} ({new Date(a.created_at).toLocaleDateString()})</option>
             ))}
           </select>
+          {filteredAssessments.length === 0 && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
+              Click "Create New Assessment" above to launch a new test.
+            </div>
+          )}
         </div>
       </div>
 

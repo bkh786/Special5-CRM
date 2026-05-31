@@ -151,27 +151,38 @@ export function useRevenueTrends() {
         ]);
         
         const monthlyData: Record<string, any> = {};
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         
         months.forEach(m => {
           monthlyData[m] = { month: m, revenue: 0, cost: 0, net_margin: 0 };
         });
 
-        // This is a simplified mock mapping for recent 6 months
-        // In real logic, we'd group by actual date. For now, let's distribute randomly or use a static trend with real totals
-        let totalRev = (fees || []).filter(f => f.paid).reduce((a, b) => a + Number(b.amount), 0);
-        let totalCost = (earnings || []).reduce((a, b) => a + Number(b.earning_amount), 0);
+        (fees || []).forEach(f => {
+          if (!f.paid || !f.created_at) return;
+          const d = new Date(f.created_at);
+          const mName = months[d.getMonth()];
+          if (monthlyData[mName]) {
+            monthlyData[mName].revenue += Number(f.amount) || 0;
+          }
+        });
 
-        const trendData = months.map((m, i) => {
-          // Distribute the total revenue/cost across 6 months realistically
-          const factor = (i + 1) / 21; // 1+2+3+4+5+6 = 21
-          const rev = Math.round(totalRev * factor);
-          const cost = Math.round(totalCost * factor);
+        (earnings || []).forEach(e => {
+          if (!e.created_at) return;
+          const d = new Date(e.created_at);
+          const mName = months[d.getMonth()];
+          if (monthlyData[mName]) {
+            monthlyData[mName].cost += Number(e.earning_amount) || 0;
+          }
+        });
+
+        const trendData = months.map(m => {
+          const rev = monthlyData[m].revenue;
+          const cost = monthlyData[m].cost;
           return {
             month: m,
-            revenue: rev || (10000 * (i + 1)),
-            cost: cost || (4000 * (i + 1)),
-            net_margin: (rev - cost) || (6000 * (i + 1))
+            revenue: rev,
+            cost: cost,
+            net_margin: rev - cost
           };
         });
 
@@ -197,24 +208,26 @@ export function useLeadTrends() {
       try {
         const { data: leads } = await supabase.from('leads').select('*');
         
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthlyData: Record<string, any> = {};
         
-        // Mock distribution based on total leads
-        const totalLeads = (leads || []).length;
-        const totalConverted = (leads || []).filter(l => l.status === 'Converted').length;
-
-        const trendData = months.map((m, i) => {
-          const factor = (i + 1) / 21;
-          const inc = Math.round(totalLeads * factor);
-          const conv = Math.round(totalConverted * factor);
-          return {
-            month: m,
-            incoming_leads: inc || (10 + i * 2),
-            converted_leads: conv || (2 + i)
-          };
+        months.forEach(m => {
+          monthlyData[m] = { month: m, incoming_leads: 0, converted_leads: 0 };
         });
 
-        setTrends(trendData);
+        (leads || []).forEach(l => {
+          if (!l.created_at) return;
+          const d = new Date(l.created_at);
+          const mName = months[d.getMonth()];
+          if (monthlyData[mName]) {
+            monthlyData[mName].incoming_leads += 1;
+            if (l.status === 'Converted') {
+              monthlyData[mName].converted_leads += 1;
+            }
+          }
+        });
+
+        setTrends(months.map(m => monthlyData[m]));
       } catch (err) {
         console.error('Error fetching lead trends:', err);
       } finally {

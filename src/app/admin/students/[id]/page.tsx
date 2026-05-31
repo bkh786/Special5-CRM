@@ -301,37 +301,56 @@ export default function StudentDetailPage() {
                        <Phone size={16} color="var(--primary)" /> {student.profiles?.phone || 'No phone registered'}
                     </div>
                  </div>
-                 <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--card-border)' }}>
-                    {isEditing ? (
-                      <>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
-                          <input type="text" className="input" placeholder="Name" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
-                          <input type="text" className="input" placeholder="Class" value={editForm.class} onChange={e => setEditForm({...editForm, class: e.target.value})} />
-                          <select className="input" value={editForm.mode} onChange={e => setEditForm({...editForm, mode: e.target.value})}>
-                            <option value="Online">Online</option>
-                            <option value="Offline">Offline</option>
-                          </select>
-                          <input type="number" className="input" placeholder="Monthly Fee" value={editForm.monthly_fee} onChange={e => setEditForm({...editForm, monthly_fee: e.target.value})} />
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ flex: 1, padding: '0.5rem' }}><X size={16} /> Cancel</button>
-                          <button onClick={handleSaveEdit} disabled={isSaving} className="btn btn-primary" style={{ flex: 1, padding: '0.5rem' }}>
-                            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <button onClick={() => setIsEditing(true)} className="btn btn-secondary" style={{ width: '100%', marginBottom: '0.75rem', gap: '0.5rem' }}>
-                          <Edit size={16} /> Edit Basic Info
-                        </button>
-                        <button className="btn btn-primary" style={{ width: '100%' }}>Send Email Alert</button>
-                      </>
-                    )}
-                 </div>
-              </div>
+               </div>
            </div>
         </div>
+      </div>
+      
+      {/* Bottom Edit Section */}
+      <div className="card" style={{ marginTop: '1rem', padding: '1.5rem', backgroundColor: '#f8fafc', border: '1px solid var(--card-border)' }}>
+        {isEditing ? (
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem' }}>Edit Student Details</h3>
+            <div className="grid grid-cols-2 gap-4" style={{ marginBottom: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.25rem' }}>Name</label>
+                <input type="text" className="input" placeholder="Name" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.25rem' }}>Class</label>
+                <input type="text" className="input" placeholder="Class" value={editForm.class} onChange={e => setEditForm({...editForm, class: e.target.value})} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.25rem' }}>Mode</label>
+                <select className="input" value={editForm.mode} onChange={e => setEditForm({...editForm, mode: e.target.value})}>
+                  <option value="Online">Online</option>
+                  <option value="Offline">Offline</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.25rem' }}>Monthly Fee</label>
+                <input type="number" className="input" placeholder="Monthly Fee" value={editForm.monthly_fee} onChange={e => setEditForm({...editForm, monthly_fee: e.target.value})} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ padding: '0.5rem 1.5rem' }}><X size={16} /> Cancel</button>
+              <button onClick={handleSaveEdit} disabled={isSaving} className="btn btn-primary" style={{ padding: '0.5rem 1.5rem' }}>
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save Changes
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h3 style={{ fontSize: '1rem', fontWeight: '700' }}>Manage Record</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>Update the student's personal or academic details.</p>
+            </div>
+            <button onClick={() => setIsEditing(true)} className="btn btn-secondary" style={{ gap: '0.5rem', backgroundColor: 'white' }}>
+              <Edit size={16} /> Edit Student Details
+            </button>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );

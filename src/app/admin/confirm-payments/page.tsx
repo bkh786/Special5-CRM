@@ -16,7 +16,7 @@ export default function ConfirmPaymentsPage() {
     setLoading(true);
     const { data } = await supabase
       .from('fee_transactions')
-      .select('*, students(name, class), fees(month, amount)')
+      .select('*, students(name, class, phone), fees(month, amount)')
       .order('created_at', { ascending: false });
     
     if (data) setTransactions(data);
@@ -44,6 +44,13 @@ export default function ConfirmPaymentsPage() {
         payment_date: new Date().toISOString(),
         admin_remarks: remark
       }).eq('fee_id', selectedTx.fee_id);
+
+      if (selectedTx.students?.phone) {
+        const phoneStr = selectedTx.students.phone.toString().replace(/\D/g, '');
+        const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+        const message = encodeURIComponent(`Hi ${selectedTx.students.name}, your payment of ₹${selectedTx.amount} for ${selectedTx.fees?.month || 'the month'} has been successfully confirmed. Thank you! - Special5 CRM`);
+        window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+      }
     } else if (status === 'Rejected') {
       await supabase.from('fees').update({
         paid: false,
@@ -198,6 +205,67 @@ export default function ConfirmPaymentsPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: '1rem', backgroundColor: '#f8fafc', border: '1px solid var(--card-border)' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Banknote size={20} color="var(--primary)" /> Global Payment Settings
+        </h2>
+        <p style={{ fontSize: '0.875rem', color: 'var(--muted)', marginBottom: '1.5rem' }}>
+          Set the UPI QR Code Image URL. This image will be shown to students on their fees payment page.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.25rem', display: 'block' }}>
+              UPI QR Image URL (e.g., Google Drive link, Imgur, or direct URL)
+            </label>
+            <input 
+              type="url" 
+              className="input" 
+              placeholder="https://example.com/my-qr-code.png"
+              id="upiLinkInput"
+            />
+          </div>
+          <button 
+            className="btn btn-primary"
+            onClick={async () => {
+              const input = document.getElementById('upiLinkInput') as HTMLInputElement;
+              if (!input) return;
+              try {
+                const res = await fetch('/api/admin/upi', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ upi_link: input.value })
+                });
+                if (res.ok) alert('UPI QR Link saved successfully!');
+                else alert('Failed to save link.');
+              } catch (e) {
+                alert('Error saving link.');
+              }
+            }}
+          >
+            Save QR Link
+          </button>
+        </div>
+        <div style={{ marginTop: '1rem' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.75rem' }}
+            onClick={async () => {
+              const input = document.getElementById('upiLinkInput') as HTMLInputElement;
+              if (!input) return;
+              try {
+                const res = await fetch('/api/admin/upi');
+                const data = await res.json();
+                if (data.upi_link) input.value = data.upi_link;
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+          >
+            Load Current Link
+          </button>
         </div>
       </div>
     </div>

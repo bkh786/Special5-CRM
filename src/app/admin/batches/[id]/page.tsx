@@ -45,11 +45,11 @@ export default function BatchDetailPage() {
     // 2. Fetch Students mapped via batch_students
     const { data: sMapping, error: sError } = await supabase
       .from('batch_students')
-      .select('student_id, students(name, class, join_date)')
+      .select('*, students(*)')
       .eq('batch_id', id);
 
     if (sMapping) {
-      const studentList = sMapping.map((m: any) => ({ ...m.students, student_id: m.student_id }));
+      const studentList = sMapping.map((m: any) => ({ ...m.students, student_id: m.student_id || m.students?.student_id || m.students?.id }));
       setStudents(studentList);
     }
 
@@ -68,13 +68,18 @@ export default function BatchDetailPage() {
   }, [id]);
 
   const handleRemoveStudent = async (studentId: string) => {
+    if (!studentId) {
+      alert('Error: Student ID is missing or invalid.');
+      return;
+    }
     if (!confirm('Are you sure you want to remove this student from the batch?')) return;
     try {
       setLoading(true);
+      const batchIdStr = Array.isArray(id) ? id[0] : id;
       const { error } = await supabase
         .from('batch_students')
         .delete()
-        .eq('batch_id', id)
+        .eq('batch_id', batchIdStr)
         .eq('student_id', studentId);
 
       if (error) throw error;
@@ -83,7 +88,7 @@ export default function BatchDetailPage() {
       alert('Student removed successfully');
     } catch (err: any) {
       console.error('Failed to remove student:', err);
-      alert('Failed to remove student from batch.');
+      alert('Failed to remove student from batch. ' + err.message);
     } finally {
       setLoading(false);
     }

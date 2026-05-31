@@ -295,9 +295,105 @@ export default function FeesPage() {
         </div>
       )}
 
+      {/* Outstanding Fees Section */}
+      <div className="card" style={{ padding: '0', overflow: 'hidden', marginBottom: '2rem' }}>
+        <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--card-border)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginRight: 'auto', color: '#ef4444' }}>Outstanding Fees (Pending Dues)</h3>
+          <button 
+            onClick={() => {
+              const exportData = fees.filter(f => !f.paid && f.status !== 'Processing').map(f => ({
+                Transaction_ID: f.fee_id,
+                Month: f.month,
+                Student_Name: f.students?.name,
+                Class: f.students?.class,
+                Amount: f.amount,
+                Method: f.payment_mode,
+                Status: 'Pending'
+              }));
+              exportToCSV(exportData, 'Outstanding_Fees_Export');
+            }}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
+          >
+            <Download size={14} /> Export Outstanding
+          </button>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          {loading ? (
+             <div style={{ display: 'flex', padding: '4rem', alignItems: 'center', justifyContent: 'center' }}>
+               <Loader2 className="animate-spin" size={32} color="var(--primary)" />
+             </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ backgroundColor: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase' }}>Month</th>
+                  <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase' }}>Student</th>
+                  <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase' }}>Amount Due</th>
+                  <th style={{ textAlign: 'center', padding: '1rem 1.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#991b1b', textTransform: 'uppercase' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fees.filter(f => !f.paid && f.status !== 'Processing').map((fee) => (
+                  <tr key={`out-${fee.fee_id}`} style={{ borderBottom: '1px solid #fecaca' }}>
+                    <td style={{ padding: '1rem 1.5rem', fontWeight: '600' }}>{fee.month || 'N/A'}</td>
+                    <td style={{ padding: '1rem 1.5rem' }}>
+                      <div style={{ fontWeight: '500' }}>{fee.students?.name || 'Unknown'}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{fee.students?.class || 'N/A'}</div>
+                    </td>
+                    <td style={{ padding: '1rem 1.5rem', fontWeight: '700', color: '#ef4444' }}>₹{Number(fee.amount).toLocaleString()}</td>
+                    <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
+                      <button 
+                        onClick={() => {
+                          if (fee.students?.phone) {
+                            const phoneStr = fee.students.phone.toString().replace(/\D/g, '');
+                            const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+                            const message = encodeURIComponent(`Hello ${fee.students.name},\nThis is a friendly reminder for your pending fee of ₹${fee.amount} for the month of ${fee.month || 'this month'}. Please clear your dues at the earliest.\n\nThank you,\nSpecial5 Team`);
+                            window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+                          } else {
+                            alert('No phone number available for this student.');
+                          }
+                        }}
+                        className="btn" 
+                        style={{ padding: '0.5rem', color: '#25D366', backgroundColor: '#dcf8c6', border: 'none', borderRadius: '6px' }}
+                        title="Send WhatsApp Reminder"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
         <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--card-border)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginRight: 'auto' }}>All Transactions</h3>
+          <h3 style={{ fontWeight: '700', fontSize: '1.125rem', marginRight: 'auto' }}>Overall Fees Database</h3>
+          <button 
+            onClick={() => {
+              const exportData = filteredFees.map(f => ({
+                Transaction_ID: f.fee_id,
+                Month: f.month,
+                Student_Name: f.students?.name,
+                Class: f.students?.class,
+                Amount: f.amount,
+                Date: f.payment_date ? new Date(f.payment_date).toLocaleDateString() : 'N/A',
+                Method: f.payment_mode,
+                Status: f.paid ? 'Paid' : 'Pending'
+              }));
+              exportToCSV(exportData, 'Overall_Fees_Export');
+            }}
+            className="btn btn-secondary"
+            style={{ fontSize: '0.75rem', padding: '0.375rem 0.75rem' }}
+          >
+            <Download size={14} /> Export All
+          </button>
           <div style={{ position: 'relative', width: '280px' }}>
             <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)' }} />
             <input 
