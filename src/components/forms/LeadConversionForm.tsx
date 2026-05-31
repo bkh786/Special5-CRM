@@ -84,6 +84,43 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
       // 3. Update Lead Status
       await supabase.from('leads').update({ status: 'Converted' }).eq('lead_id', lead.lead_id || lead.id);
 
+      // 4. Send WhatsApp Welcome Message
+      if (lead.phone) {
+        const phoneStr = lead.phone.toString().replace(/\D/g, '');
+        const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+        const batchDetails = batches.find(b => b.batch_id === formData.batchId);
+        
+        const message = `Hello *${lead.student_name}*,
+
+Welcome to *Special5 Online Tuitions*! 🎉
+
+We are delighted to have you onboard with us. Your enrollment has been successfully completed and your student account has been created.
+
+📚 *Student Details*
+
+• Student Name: ${lead.student_name}
+• Class Registered For: ${lead.class}
+• Batch Timing: ${batchDetails?.timing || 'TBD'}
+• Monthly Fee: ₹${formData.monthly_fee}
+• Fee Plan: ${formData.feesPlan}
+• Date of Onboarding: ${formData.dateOfJoining}
+• Subjects: ${formData.subjects}
+
+🔐 *CRM Login Details*
+
+• User ID: ${finalEmail}
+• Password: Special5@1234
+
+🌐 CRM Login URL: https://crm.special5.in/
+
+We look forward to being a part of your academic journey and helping you achieve your learning goals.
+
+*Thank You!*
+*Special5 Online Tuitions*`;
+
+        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+      }
+
       onSuccess();
     } catch (err: any) {
       console.error('Conversion error:', err);

@@ -103,6 +103,41 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
           working_status: formData.working_status,
           hiring_status: 'selected'
         }).eq('teacher_id', teacherUuid);
+
+        // Send WhatsApp Welcome Message
+        const phoneStr = phoneNumber.replace(/\D/g, '');
+        const formattedPhone = `${countryCode.replace('+', '')}${phoneStr}`;
+        
+        const message = `Hello *${formData.name}*,
+
+Welcome to *Special5 Online Tuitions*! 🎉
+
+We are pleased to welcome you to our teaching team. Your profile has been successfully onboarded and your teacher account has been created.
+
+👨‍🏫 *Teacher Details*
+
+• Teacher Name: ${formData.name}
+• Subjects Assigned: ${formData.subjects}
+
+💰 *Per Student Pass-On Fee*
+
+• Class 1–4: ₹${formData.class_1_to_4_rate || 0}
+• Class 5–8: ₹${formData.class_5_to_8_rate || 0}
+• Class 9–10: ₹${formData.class_9_to_10_rate || 0}
+
+🔐 *CRM Login Details*
+
+• Login ID: ${formData.email}
+• Password: Special5@1234
+
+🌐 CRM Login URL: https://crm.special5.in/
+
+We look forward to working together to deliver high-quality learning experiences to our students.
+
+*Thank You!*
+*Special5 Online Tuitions*`;
+
+        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
       }
 
       setSuccess(true);
