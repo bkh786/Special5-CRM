@@ -23,10 +23,10 @@ export default function StudentClassUpdatePage() {
         .select('batch_id, batches(*)')
         .eq('student_id', user.id);
         
-      const myBatches = bsData?.map(bs => bs.batches).filter(Boolean) || [];
+      const myBatches = (bsData?.map(bs => bs.batches).filter(Boolean) as any[]) || [];
       setBatches(myBatches);
       
-      const batchIds = myBatches.map(b => b.batch_id);
+      const batchIds = myBatches.map((b: any) => b.batch_id);
 
       if (batchIds.length > 0) {
         // 2. Fetch class updates for these batches
