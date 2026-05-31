@@ -38,6 +38,14 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submission
+    
+    // Open window synchronously to bypass popup blockers
+    let waWindow: Window | null = null;
+    if (formData.hiring_status === 'selected' && phoneNumber) {
+      waWindow = window.open('about:blank', '_blank');
+    }
+
     setLoading(true);
     setError(null);
 
@@ -94,7 +102,7 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
         }
       }
 
-      // If hired, we might need to update the additional fields (though the API does some, let's ensure all are set)
+      // If hired, we might need to update the additional fields
       if (formData.hiring_status === 'selected' && teacherUuid) {
         await supabase.from('teachers').update({
           subjects: formData.subjects,
@@ -105,10 +113,11 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
         }).eq('teacher_id', teacherUuid);
 
         // Send WhatsApp Welcome Message
-        const phoneStr = phoneNumber.replace(/\D/g, '');
-        const formattedPhone = `${countryCode.replace('+', '')}${phoneStr}`;
-        
-        const message = `Hello *${formData.name}*,
+        if (waWindow) {
+          const phoneStr = phoneNumber.replace(/\D/g, '');
+          const formattedPhone = `${countryCode.replace('+', '')}${phoneStr}`;
+          
+          const message = `Hello *${formData.name}*,
 
 Welcome to *Special5 Online Tuitions*! 🎉
 
@@ -137,7 +146,10 @@ We look forward to working together to deliver high-quality learning experiences
 *Thank You!*
 *Special5 Online Tuitions*`;
 
-        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+          waWindow.location.href = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        }
+      } else if (waWindow) {
+        waWindow.close();
       }
 
       setSuccess(true);
@@ -147,6 +159,7 @@ We look forward to working together to deliver high-quality learning experiences
     } catch (err: any) {
       console.error('Error hiring teacher:', err);
       setError(err.message || 'Failed to hire teacher. Please try again.');
+      if (waWindow) waWindow.close();
     } finally {
       setLoading(false);
     }

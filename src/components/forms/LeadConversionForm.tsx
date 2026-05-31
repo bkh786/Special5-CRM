@@ -38,6 +38,14 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent double submission
+    
+    // Open window synchronously to bypass popup blockers
+    let waWindow: Window | null = null;
+    if (lead.phone) {
+      waWindow = window.open('about:blank', '_blank');
+    }
+
     setLoading(true);
     setError(null);
 
@@ -70,22 +78,24 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
         // Find batch to pull amount
         const batch = batches.find(b => b.batch_id === formData.batchId);
         if (batch) {
-          await supabase.from('fees').insert([{
+          const { error: feeError } = await supabase.from('fees').insert([{
             student_id: data.user.id,
             batch_id: batch.batch_id,
-            amount_due: batch.monthly_fee || 0,
-            status: 'Pending',
+            amount: formData.monthly_fee ? parseFloat(formData.monthly_fee) : (batch.monthly_fee || 0),
+            paid: false,
             due_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0], // Due next month
             month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' })
           }]);
+          if (feeError) console.error('Fee insertion failed:', feeError);
         }
       }
 
       // 3. Update Lead Status
-      await supabase.from('leads').update({ status: 'Converted' }).eq('lead_id', lead.lead_id || lead.id);
+      const { error: leadError } = await supabase.from('leads').update({ status: 'Converted' }).eq('lead_id', lead.lead_id || lead.id);
+      if (leadError) throw new Error(`Lead update failed: ${leadError.message}`);
 
       // 4. Send WhatsApp Welcome Message
-      if (lead.phone) {
+      if (lead.phone && waWindow) {
         const phoneStr = lead.phone.toString().replace(/\D/g, '');
         const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
         const batchDetails = batches.find(b => b.batch_id === formData.batchId);
@@ -118,13 +128,14 @@ We look forward to being a part of your academic journey and helping you achieve
 *Thank You!*
 *Special5 Online Tuitions*`;
 
-        window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+        waWindow.location.href = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
       }
 
       onSuccess();
     } catch (err: any) {
       console.error('Conversion error:', err);
       setError(err.message || 'An error occurred during conversion');
+      if (waWindow) waWindow.close();
     } finally {
       setLoading(false);
     }
