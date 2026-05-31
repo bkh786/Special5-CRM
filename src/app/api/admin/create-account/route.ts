@@ -113,8 +113,7 @@ export async function POST(req: Request) {
           mode: details?.mode || 'Offline',
           join_date: details?.join_date || details?.enrollment_date || new Date().toISOString().split('T')[0],
           status: details?.status || 'Active',
-          monthly_fee: details?.fees || 0,
-          mapped_batch: details?.batchName || null
+          monthly_fee: details?.fees || 0
         }
       ]);
       if (studentError) throw new Error(`Student insert failed: ${studentError.message}`);
