@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import { Loader2, CheckCircle, AlertCircle, Briefcase } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Briefcase, MessageCircle } from 'lucide-react';
 
 interface TeacherFormProps {
   onSuccess: () => void;
@@ -13,6 +13,7 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,12 +40,6 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return; // Prevent double submission
-    
-    // Open window synchronously to bypass popup blockers
-    let waWindow: Window | null = null;
-    if (formData.hiring_status === 'selected' && phoneNumber) {
-      waWindow = window.open('about:blank', '_blank');
-    }
 
     setLoading(true);
     setError(null);
@@ -113,11 +108,10 @@ export default function TeacherForm({ onSuccess, onCancel }: TeacherFormProps) {
         }).eq('teacher_id', teacherUuid);
 
         // Send WhatsApp Welcome Message
-        if (waWindow) {
-          const phoneStr = phoneNumber.replace(/\D/g, '');
-          const formattedPhone = `${countryCode.replace('+', '')}${phoneStr}`;
-          
-          const message = `Hello *${formData.name}*,
+        const phoneStr = phoneNumber.replace(/\D/g, '');
+        const formattedPhone = `${countryCode.replace('+', '')}${phoneStr}`;
+        
+        const message = `Hello *${formData.name}*,
 
 Welcome to *Special5 Online Tuitions*! 🎉
 
@@ -146,20 +140,13 @@ We look forward to working together to deliver high-quality learning experiences
 *Thank You!*
 *Special5 Online Tuitions*`;
 
-          waWindow.location.href = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
-        }
-      } else if (waWindow) {
-        waWindow.close();
+        setWhatsappLink(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`);
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 1500);
     } catch (err: any) {
       console.error('Error hiring teacher:', err);
       setError(err.message || 'Failed to hire teacher. Please try again.');
-      if (waWindow) waWindow.close();
     } finally {
       setLoading(false);
     }
@@ -167,7 +154,7 @@ We look forward to working together to deliver high-quality learning experiences
 
   if (success) {
     return (
-      <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+      <div style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div style={{
           width: '64px',
           height: '64px',
@@ -177,12 +164,34 @@ We look forward to working together to deliver high-quality learning experiences
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          margin: '0 auto 1.5rem'
+          marginBottom: '1.5rem'
         }}>
           <CheckCircle size={32} />
         </div>
         <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Teacher Hired!</h3>
-        <p style={{ color: '#64748b' }}>Faculty member {formData.name} added successfully.</p>
+        <p style={{ color: '#64748b', marginBottom: '2rem' }}>Faculty member {formData.name} added successfully.</p>
+        
+        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+          {whatsappLink && (
+            <button 
+              onClick={() => {
+                window.open(whatsappLink, '_blank');
+                onSuccess();
+              }} 
+              className="btn" 
+              style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              <MessageCircle size={18} /> Send Onboarding Message
+            </button>
+          )}
+          <button 
+            onClick={onSuccess} 
+            className="btn btn-secondary" 
+            style={{ flex: whatsappLink ? 0.4 : 1 }}
+          >
+            Ignore
+          </button>
+        </div>
       </div>
     );
   }

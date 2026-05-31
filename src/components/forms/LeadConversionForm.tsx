@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Users, Calendar, CreditCard, BookOpen } from 'lucide-react';
+import { Loader2, Users, Calendar, CreditCard, BookOpen, CheckCircle, MessageCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
 
 interface LeadConversionFormProps {
@@ -11,6 +11,8 @@ interface LeadConversionFormProps {
 export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadConversionFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState('');
   
   const [batches, setBatches] = useState<any[]>([]);
   
@@ -40,12 +42,6 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
     e.preventDefault();
     if (loading) return; // Prevent double submission
     
-    // Open window synchronously to bypass popup blockers
-    let waWindow: Window | null = null;
-    if (lead.phone) {
-      waWindow = window.open('about:blank', '_blank');
-    }
-
     setLoading(true);
     setError(null);
 
@@ -95,7 +91,7 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
       if (leadError) throw new Error(`Lead update failed: ${leadError.message}`);
 
       // 4. Send WhatsApp Welcome Message
-      if (lead.phone && waWindow) {
+      if (lead.phone) {
         const phoneStr = lead.phone.toString().replace(/\D/g, '');
         const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
         const batchDetails = batches.find(b => b.batch_id === formData.batchId);
@@ -128,18 +124,61 @@ We look forward to being a part of your academic journey and helping you achieve
 *Thank You!*
 *Special5 Online Tuitions*`;
 
-        waWindow.location.href = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        setWhatsappLink(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`);
       }
 
-      onSuccess();
+      setSuccess(true);
     } catch (err: any) {
       console.error('Conversion error:', err);
       setError(err.message || 'An error occurred during conversion');
-      if (waWindow) waWindow.close();
     } finally {
       setLoading(false);
     }
   };
+
+  if (success) {
+    return (
+      <div style={{ textAlign: 'center', padding: '2rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{
+          width: '64px',
+          height: '64px',
+          backgroundColor: '#ecfdf5',
+          color: '#10b981',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '1.5rem'
+        }}>
+          <CheckCircle size={32} />
+        </div>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Student Onboarded!</h3>
+        <p style={{ color: '#64748b', marginBottom: '2rem' }}>{lead.student_name} has been successfully converted into a student.</p>
+        
+        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+          {whatsappLink && (
+            <button 
+              onClick={() => {
+                window.open(whatsappLink, '_blank');
+                onSuccess();
+              }} 
+              className="btn" 
+              style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              <MessageCircle size={18} /> Send Onboarding Message
+            </button>
+          )}
+          <button 
+            onClick={onSuccess} 
+            className="btn btn-secondary" 
+            style={{ flex: whatsappLink ? 0.4 : 1 }}
+          >
+            Ignore
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
