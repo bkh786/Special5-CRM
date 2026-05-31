@@ -174,9 +174,6 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
       if (!res.ok) throw new Error(data.error);
 
       setSuccess(true);
-      setTimeout(() => {
-        onSuccess();
-      }, 1500);
     } catch (err: any) {
       console.error('Error handling batch:', err);
       setError(err.message || 'Failed to process batch update/creation.');
@@ -186,27 +183,89 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
   };
 
   if (success) {
+    const selectedTeacher = teachers.find(t => (t.teacher_id || t.id) === formData.teacher_id);
+    let whatsappLink = '';
+    
+    if (selectedTeacher && selectedTeacher.phone && !isEdit) {
+      const phoneStr = selectedTeacher.phone.toString().replace(/\D/g, '');
+      const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+      
+      const [hoursStr, minutesStr] = startTime.split(':');
+      const start12 = (() => {
+         const h = parseInt(hoursStr);
+         const m = parseInt(minutesStr);
+         const ampm = h >= 12 ? 'PM' : 'AM';
+         const displayH = h % 12 || 12;
+         return `${displayH}:${m.toString().padStart(2, '0')} ${ampm}`;
+      })();
+      
+      const message = `Hello *${selectedTeacher.name}*,
+
+A new batch has been created and assigned to you on *Special5 Online Tuitions*. 🎉
+
+📚 *Batch Details*
+
+• Batch: ${formData.class} - ${formData.subject}
+• Days: ${formData.selectedDays.join(', ')}
+• Timing: ${start12} - ${endTime}
+
+Please log in to the CRM to view your students and schedule.
+
+🌐 CRM Login URL: https://crm.special5.in/
+
+*Thank You!*
+*Special5 Online Tuitions*`;
+
+      whatsappLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+    }
+
     return (
-      <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
-          backgroundColor: '#ecfdf5',
-          color: '#10b981',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem'
-        }}>
-          <CheckCircle size={32} />
+      <div style={{ padding: '1rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '64px',
+            height: '64px',
+            backgroundColor: '#ecfdf5',
+            color: '#10b981',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem'
+          }}>
+            <CheckCircle size={32} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
+            Batch {isEdit ? 'Updated' : 'Created'}!
+          </h3>
+          <p style={{ color: '#64748b' }}>
+            {isEdit ? 'Changes have been saved to the faculty ledger.' : 'Your new batch is now explicitly mapped to the system.'}
+          </p>
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>
-          Batch {isEdit ? 'Updated' : 'Created'}!
-        </h3>
-        <p style={{ color: '#64748b' }}>
-          {isEdit ? 'Changes have been saved to the faculty ledger.' : 'Your new batch is now explicitly mapped to the system.'}
-        </p>
+
+        <div style={{ display: 'flex', gap: '1rem', width: '100%', marginTop: '1.5rem' }}>
+          {whatsappLink && (
+            <a 
+              href={whatsappLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onSuccess} 
+              className="btn" 
+              style={{ flex: 1, backgroundColor: '#25D366', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textDecoration: 'none' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              Send Batch Alert
+            </a>
+          )}
+          <button 
+            type="button"
+            onClick={onSuccess} 
+            className="btn btn-secondary" 
+            style={{ flex: whatsappLink ? 0.4 : 1 }}
+          >
+            {whatsappLink ? 'Ignore' : 'Close'}
+          </button>
+        </div>
       </div>
     );
   }
