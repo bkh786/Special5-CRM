@@ -19,12 +19,16 @@ import { supabase } from '@/lib/supabase-client';
 import ActionModal from '@/components/common/ActionModal';
 import TeacherForm from '@/components/forms/TeacherForm';
 import HiringConfirmationForm from '@/components/forms/HiringConfirmationForm';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function TeachersPage() {
   const router = useRouter();
   const [teachers, setTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterHiringStatus, setFilterHiringStatus] = useState('all');
+  const [filterWorkingStatus, setFilterWorkingStatus] = useState('all');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHiringModalOpen, setIsHiringModalOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<any>(null);
@@ -101,35 +105,28 @@ export default function TeachersPage() {
     setIsHiringModalOpen(true);
   };
 
-  const filteredTeachers = teachers.filter(teacher => 
-    teacher.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    teacher.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.subjects?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTeachers = teachers.filter(teacher => {
+    const matchesSearch = teacher.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          teacher.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          teacher.subjects?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesHiring = filterHiringStatus === 'all' || (teacher.hiring_status || 'applied') === filterHiringStatus;
+    const matchesWorking = filterWorkingStatus === 'all' || (teacher.working_status || 'Active') === filterWorkingStatus;
+    
+    return matchesSearch && matchesHiring && matchesWorking;
+  });
 
   const handleDownload = () => {
     if (!teachers.length) return;
-    const headers = ['Teacher ID', 'Name', 'Email', 'Phone', 'Subjects', 'Hiring Status', 'Working Status'];
-    const csvContent = [
-      headers.join(','),
-      ...teachers.map(t => [
-        t.teacher_id || t.id,
-        `"${t.name || ''}"`,
-        `"${t.email || ''}"`,
-        `"${t.phone || ''}"`,
-        `"${t.subjects || ''}"`,
-        `"${t.hiring_status || ''}"`,
-        `"${t.working_status || ''}"`
-      ].join(','))
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `teachers_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const exportData = teachers.map(t => ({
+      'Teacher ID': t.teacher_id || t.id,
+      'Name': t.name,
+      'Email': t.email,
+      'Phone': t.phone,
+      'Subjects': t.subjects,
+      'Hiring Status': t.hiring_status,
+      'Working Status': t.working_status
+    }));
+    exportToCSV(exportData, `teachers_export_${new Date().toISOString().split('T')[0]}`);
   };
 
   const applicationsReceived = teachers.filter(t => t.hiring_status === 'applied').length;
@@ -244,10 +241,60 @@ export default function TeachersPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <button className="btn btn-secondary">
-            <Filter size={18} />
-            Filters
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button 
+              className="btn btn-secondary"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+            >
+              <Filter size={18} />
+              Filters
+            </button>
+            {isFilterOpen && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '0.5rem',
+                backgroundColor: 'white',
+                border: '1px solid var(--card-border)',
+                borderRadius: '8px',
+                padding: '1rem',
+                width: '240px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                zIndex: 10
+              }}>
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.5rem' }}>Hiring Status</label>
+                  <select 
+                    className="input" 
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    value={filterHiringStatus}
+                    onChange={(e) => setFilterHiringStatus(e.target.value)}
+                  >
+                    <option value="all">All</option>
+                    <option value="applied">Applied</option>
+                    <option value="reviewed">Reviewed</option>
+                    <option value="selected">Selected</option>
+                    <option value="hired">Hired</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--muted)', marginBottom: '0.5rem' }}>Working Status</label>
+                  <select 
+                    className="input" 
+                    style={{ width: '100%', padding: '0.5rem' }}
+                    value={filterWorkingStatus}
+                    onChange={(e) => setFilterWorkingStatus(e.target.value)}
+                  >
+                    <option value="all">All</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -327,6 +374,24 @@ export default function TeachersPage() {
                           style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem' }}
                         >
                           View Profile
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (teacher.phone) {
+                              const phoneStr = teacher.phone.toString().replace(/\D/g, '');
+                              const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+                              window.open(`https://wa.me/${formattedPhone}`, '_blank');
+                            } else {
+                              alert('No phone number provided for this teacher.');
+                            }
+                          }}
+                          className="btn" 
+                          style={{ padding: '0.375rem', color: '#25D366', backgroundColor: '#dcf8c6', border: 'none', borderRadius: '6px' }}
+                          title="WhatsApp"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                          </svg>
                         </button>
                       </div>
                     </td>

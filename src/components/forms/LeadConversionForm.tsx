@@ -19,7 +19,8 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
     batchId: '',
     feesPlan: 'monthly',
     monthly_fee: '',
-    subjects: lead.subjects || ''
+    subjects: lead.subjects || '',
+    email: lead.email_id || ''
   });
 
   useEffect(() => {
@@ -42,11 +43,12 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
 
     try {
       // 1. Call API to create Auth Account and write to Students table
+      const finalEmail = formData.email || `${lead.student_name.replace(/\s+/g, '').toLowerCase()}${Math.floor(Math.random() * 1000)}@student.com`;
       const res = await fetch('/api/admin/create-account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: lead.email_id || `${lead.student_name.replace(/\s+/g, '').toLowerCase()}${Math.floor(Math.random() * 1000)}@student.com`, // Fallback for dummy leads without emails
+          email: finalEmail,
           name: lead.student_name,
           role: 'STUDENT',
           details: {
@@ -138,6 +140,20 @@ export default function LeadConversionForm({ lead, onSuccess, onCancel }: LeadCo
               })}
             </select>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="form-group col-span-2">
+          <label style={{ fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem', display: 'block' }}>Email ID *</label>
+          <input 
+            type="email" 
+            required
+            className="input" 
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            placeholder="student@example.com"
+          />
         </div>
       </div>
 

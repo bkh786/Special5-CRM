@@ -15,11 +15,13 @@ import {
   DollarSign,
   AlertCircle,
   RefreshCw,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
 import ActionModal from '@/components/common/ActionModal';
 import BatchForm from '@/components/forms/BatchForm';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function AdminBatchesPage() {
   const router = useRouter();
@@ -56,6 +58,21 @@ export default function AdminBatchesPage() {
     setSelectedBatch(null);
   };
 
+  const handleDelete = async (batchId: string) => {
+    if (!confirm('Are you sure you want to delete this batch? This action cannot be undone.')) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase.from('batches').delete().eq('batch_id', batchId);
+      if (error) throw error;
+      fetchBatches();
+    } catch (err: any) {
+      console.error('Failed to delete batch:', err);
+      alert('Failed to delete batch.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -66,6 +83,28 @@ export default function AdminBatchesPage() {
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button onClick={fetchBatches} className="btn btn-secondary" style={{ padding: '0.5rem' }}>
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button 
+            onClick={() => {
+              if (!batches.length) return;
+              const exportData = batches.map(b => ({
+                'Batch ID': b.batch_id,
+                'Name': b.name,
+                'Subject': b.subject,
+                'Class': b.class,
+                'Faculty': b.teachers?.name || 'Unassigned',
+                'Timing': b.timing,
+                'Zoom Link': b.zoom_link,
+                'Enrolled': b.batch_students?.[0]?.count || 0,
+                'Max Capacity': b.max_students || 5
+              }));
+              exportToCSV(exportData, `batches_export_${new Date().toISOString().split('T')[0]}`);
+            }}
+            className="btn btn-secondary"
+            style={{ backgroundColor: '#f1f5f9', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
+          >
+            <Download size={18} />
+            Export Data
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -166,6 +205,13 @@ export default function AdminBatchesPage() {
                             onClick={() => handleEdit(batch)}
                           >
                             Edit
+                          </button>
+                          <button 
+                            className="btn" 
+                            style={{ padding: '0.375rem 0.75rem', fontSize: '0.75rem', backgroundColor: '#fee2e2', color: '#ef4444', border: 'none' }}
+                            onClick={() => handleDelete(batch.batch_id)}
+                          >
+                            Delete
                           </button>
                         </div>
                       </td>

@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { TrendingUp, CreditCard, Loader2, RefreshCw, IndianRupee, Clock } from 'lucide-react';
+import { TrendingUp, CreditCard, Loader2, RefreshCw, IndianRupee, Clock, Download } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/lib/supabase-client';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 function StatCard({ title, value, subtitle, icon: Icon, color, splitView }: any) {
   return (
@@ -57,10 +58,30 @@ export default function TeacherEarningsPage() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700' }}>Earnings</h1>
           <p style={{ color: 'var(--muted)' }}>Your earning history and payout status managed by the admin.</p>
         </div>
-        <button onClick={loadEarnings} className="btn btn-secondary" style={{ padding: '0.5rem' }}>
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-        </button>
-      </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={loadEarnings} className="btn btn-secondary" style={{ padding: '0.5rem' }}>
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <button 
+            onClick={() => {
+              if (!earnings.length) return;
+              const exportData = earnings.map(e => ({
+                'Month': e.month,
+                'Students': e.students_count,
+                'Earning': e.earning_amount,
+                'Paid Out': e.paid_amount,
+                'Pending': Number(e.earning_amount) - Number(e.paid_amount),
+                'Status': e.is_paid ? 'Paid' : 'Pending'
+              }));
+              exportToCSV(exportData, `earnings_export_${new Date().toISOString().split('T')[0]}`);
+            }}
+            className="btn btn-secondary"
+            style={{ backgroundColor: '#f1f5f9', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
+          >
+            <Download size={18} />
+            Export Data
+          </button>
+        </div>
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>

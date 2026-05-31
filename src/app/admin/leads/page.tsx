@@ -20,8 +20,10 @@ import {
 import { supabase } from '@/lib/supabase-client';
 import ActionModal from '@/components/common/ActionModal';
 import LeadForm from '@/components/forms/LeadForm';
+import LeadForm from '@/components/forms/LeadForm';
 import LeadConversionForm from '@/components/forms/LeadConversionForm';
 import LeadBulkUploadForm from '@/components/forms/LeadBulkUploadForm';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -31,6 +33,7 @@ export default function AdminLeadsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [conversionLead, setConversionLead] = useState<any | null>(null);
+  const [editLead, setEditLead] = useState<any | null>(null);
 
   const fetchLeads = async () => {
     try {
@@ -98,30 +101,17 @@ export default function AdminLeadsPage() {
 
   const handleDownload = () => {
     if (!leads.length) return;
-    
-    const headers = ['Lead ID', 'Student Name', 'Email', 'Phone', 'Class', 'Subjects', 'Status', 'Created At'];
-    const csvContent = [
-      headers.join(','),
-      ...leads.map(l => [
-        l.lead_id || l.id,
-        `"${l.student_name || ''}"`,
-        `"${l.email_id || ''}"`,
-        `"${l.phone || ''}"`,
-        `"${l.class || ''}"`,
-        `"${l.subjects || ''}"`,
-        `"${l.status || ''}"`,
-        `"${new Date(l.created_at).toLocaleDateString()}"`
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `leads_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const exportData = leads.map(l => ({
+      'Lead ID': l.lead_id || l.id,
+      'Student Name': l.student_name,
+      'Email': l.email_id,
+      'Phone': l.phone,
+      'Class': l.class,
+      'Subjects': l.subjects,
+      'Status': l.status,
+      'Created At': new Date(l.created_at).toLocaleDateString()
+    }));
+    exportToCSV(exportData, `leads_export_${new Date().toISOString().split('T')[0]}`);
   };
 
   return (
@@ -152,7 +142,10 @@ export default function AdminLeadsPage() {
             Export Data
           </button>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditLead(null);
+              setIsModalOpen(true);
+            }}
             className="btn btn-primary"
           >
             <Plus size={18} />
@@ -178,16 +171,24 @@ export default function AdminLeadsPage() {
 
       <ActionModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Add New Lead"
-        description="Fill in the details below to record a new student enquiry."
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditLead(null);
+        }}
+        title={editLead ? "Edit Lead" : "Add New Lead"}
+        description={editLead ? "Update lead details below." : "Fill in the details below to record a new student enquiry."}
       >
         <LeadForm 
+          initialData={editLead}
           onSuccess={() => {
             setIsModalOpen(false);
+            setEditLead(null);
             fetchLeads();
           }}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setEditLead(null);
+          }}
         />
       </ActionModal>
 
@@ -298,8 +299,34 @@ export default function AdminLeadsPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.5rem' }}>
-                          <Mail size={16} />
+                        <button 
+                          onClick={() => {
+                            if (lead.phone) {
+                              const phoneStr = lead.phone.toString().replace(/\D/g, '');
+                              const formattedPhone = phoneStr.startsWith('91') ? phoneStr : `91${phoneStr}`;
+                              window.open(`https://wa.me/${formattedPhone}`, '_blank');
+                            } else {
+                              alert('No phone number provided for this lead.');
+                            }
+                          }}
+                          className="btn" 
+                          style={{ padding: '0.375rem', color: '#25D366', backgroundColor: '#dcf8c6', border: 'none', borderRadius: '6px' }}
+                          title="WhatsApp"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
+                          </svg>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setEditLead(lead);
+                            setIsModalOpen(true);
+                          }}
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.375rem', fontSize: '0.75rem' }}
+                          title="Edit Lead"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </button>
                         {!isConverted ? (
                           <button 

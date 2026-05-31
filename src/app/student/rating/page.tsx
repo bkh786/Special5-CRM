@@ -39,18 +39,21 @@ export default function StudentRatingPage() {
           
         const ratedTeacherIds = new Set(rData?.map(r => r.teacher_id));
 
-        const formatted = tData?.map(t => {
-           const tObj = Array.isArray(t.teachers) ? t.teachers[0] : t.teachers;
-           return {
-             teacher_id: t.teacher_id,
-             batch_id: t.batch_id,
-             name: tObj?.name || 'Assigned Instructor',
-             subjects: tObj?.subjects || 'General',
-             alreadyRated: ratedTeacherIds.has(t.teacher_id)
-           };
-        }).filter((v, i, a) => a.findIndex(t => (t.teacher_id === v.teacher_id)) === i); // deduplicate by teacher
+        const formatted = (tData || [])
+          .filter(t => t.teacher_id != null)
+          .map(t => {
+             const tObj = Array.isArray(t.teachers) ? t.teachers[0] : t.teachers;
+             return {
+               teacher_id: t.teacher_id,
+               batch_id: t.batch_id,
+               name: tObj?.name || 'Assigned Instructor',
+               subjects: tObj?.subjects || 'General',
+               alreadyRated: ratedTeacherIds.has(t.teacher_id)
+             };
+          })
+          .filter((v, i, a) => a.findIndex(t => t.teacher_id === v.teacher_id) === i); // deduplicate by teacher
         
-        setTeachers(formatted || []);
+        setTeachers(formatted);
       }
       setLoading(false);
     }

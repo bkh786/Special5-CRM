@@ -14,7 +14,10 @@ import {
   GraduationCap,
   Calendar,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Save,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,6 +29,9 @@ export default function StudentDetailPage() {
   const [fees, setFees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function loadStudentData() {
@@ -45,6 +51,12 @@ export default function StudentDetailPage() {
         return;
       }
       setStudent(sData);
+      setEditForm({
+        name: sData.name,
+        class: sData.class,
+        mode: sData.mode,
+        monthly_fee: sData.monthly_fee
+      });
 
       // 2. Fetch Assigned Batches
       const { data: bMapping } = await supabase
@@ -86,6 +98,31 @@ export default function StudentDetailPage() {
        setFees(prev => prev.map(f => f.fee_id === feeId ? { ...f, paid: true, payment_mode: 'Manual', payment_date: new Date() } : f));
     }
     setActionLoading(null);
+  };
+
+  const handleSaveEdit = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({
+          name: editForm.name,
+          class: editForm.class,
+          mode: editForm.mode,
+          monthly_fee: editForm.monthly_fee
+        })
+        .eq('student_id', id);
+
+      if (error) throw error;
+      setStudent({ ...student, ...editForm });
+      setIsEditing(false);
+      alert('Student updated successfully!');
+    } catch (err: any) {
+      console.error('Failed to update student:', err);
+      alert('Failed to update student: ' + err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) {
@@ -265,8 +302,32 @@ export default function StudentDetailPage() {
                     </div>
                  </div>
                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--card-border)' }}>
-                    <button className="btn btn-secondary" style={{ width: '100%', marginBottom: '0.75rem' }}>Edit Basic Info</button>
-                    <button className="btn btn-primary" style={{ width: '100%' }}>Send Email Alert</button>
+                    {isEditing ? (
+                      <>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                          <input type="text" className="input" placeholder="Name" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+                          <input type="text" className="input" placeholder="Class" value={editForm.class} onChange={e => setEditForm({...editForm, class: e.target.value})} />
+                          <select className="input" value={editForm.mode} onChange={e => setEditForm({...editForm, mode: e.target.value})}>
+                            <option value="Online">Online</option>
+                            <option value="Offline">Offline</option>
+                          </select>
+                          <input type="number" className="input" placeholder="Monthly Fee" value={editForm.monthly_fee} onChange={e => setEditForm({...editForm, monthly_fee: e.target.value})} />
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button onClick={() => setIsEditing(false)} className="btn btn-secondary" style={{ flex: 1, padding: '0.5rem' }}><X size={16} /> Cancel</button>
+                          <button onClick={handleSaveEdit} disabled={isSaving} className="btn btn-primary" style={{ flex: 1, padding: '0.5rem' }}>
+                            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setIsEditing(true)} className="btn btn-secondary" style={{ width: '100%', marginBottom: '0.75rem', gap: '0.5rem' }}>
+                          <Edit size={16} /> Edit Basic Info
+                        </button>
+                        <button className="btn btn-primary" style={{ width: '100%' }}>Send Email Alert</button>
+                      </>
+                    )}
                  </div>
               </div>
            </div>

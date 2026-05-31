@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronRight, CheckCircle2, Loader2, RefreshCw, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, CheckCircle2, Loader2, RefreshCw, Calendar, Download } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
 import { supabase } from '@/lib/supabase-client';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 // Parse timing string like "Mon-Wed-Fri, 6:00 PM - 7:30 PM" → days array
 function parseDays(timing: string): string[] {
@@ -258,7 +259,22 @@ export default function TeacherAttendancePage() {
                         ))}
                       </tbody>
                     </table>
-                    <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ padding: '1rem 1.25rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid #f1f5f9' }}>
+                      <button
+                        onClick={() => {
+                          const exportData = entry.students.map((s: any) => ({
+                            'Student Name': s.name,
+                            'Class': s.class,
+                            'Attendance': entry.localMarks[s.student_id] || 'Not Marked'
+                          }));
+                          exportToCSV(exportData, `attendance_${entry.batch.name.replace(/\s+/g, '_')}_${entry.date}`);
+                        }}
+                        className="btn btn-secondary"
+                        style={{ backgroundColor: '#f1f5f9', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
+                      >
+                        <Download size={16} />
+                        Export
+                      </button>
                       <button
                         onClick={() => handleSave(idx)}
                         disabled={entry.isSaving}

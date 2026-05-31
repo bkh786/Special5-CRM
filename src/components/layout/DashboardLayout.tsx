@@ -66,6 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Protection is now primarily handled by middleware.ts
   if (isLoading || !user) {
@@ -124,16 +125,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div style={{ padding: '1rem', borderTop: '1px solid var(--sidebar-border)' }}>
-          <button 
-            onClick={logout}
-            className="btn" 
-            style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--destructive)', gap: '0.75rem' }}
-          >
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
-        </div>
+        {/* Sidebar Footer Removed */}
       </aside>
 
       {/* Main Content Area */}
@@ -163,12 +155,63 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%' }}>
               <Bell size={20} />
             </button>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>{user.name}</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{user.role}</div>
-            </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--secondary)', overflow: 'hidden' }}>
-              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} alt="user" />
+            
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', position: 'relative' }}
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+            >
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.875rem', fontWeight: '600' }}>{user.name}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{user.role}</div>
+              </div>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--secondary)', overflow: 'hidden' }}>
+                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`} alt="user" />
+              </div>
+              
+              {isProfileOpen && (
+                <div style={{
+                  position: 'absolute',
+                  top: '120%',
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                  border: '1px solid var(--card-border)',
+                  minWidth: '200px',
+                  zIndex: 50,
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ padding: '1rem', borderBottom: '1px solid var(--card-border)' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#1e293b' }}>{user.email || user.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Account Settings</div>
+                  </div>
+                  <div style={{ padding: '0.5rem' }}>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); logout(); }}
+                      style={{ 
+                        width: '100%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.75rem', 
+                        padding: '0.75rem 1rem', 
+                        color: 'var(--destructive)', 
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        borderRadius: '6px',
+                        textAlign: 'left',
+                        fontSize: '0.875rem',
+                        fontWeight: '500'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <LogOut size={18} />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>

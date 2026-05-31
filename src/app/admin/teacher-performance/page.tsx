@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Star, BarChart3, Users, Loader2 } from 'lucide-react';
+import { Star, BarChart3, Users, Loader2, Download } from 'lucide-react';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function TeacherPerformancePage() {
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -126,8 +127,25 @@ export default function TeacherPerformancePage() {
               </div>
 
               <div className="card" style={{ padding: '0' }}>
-                 <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--card-border)' }}>
+                 <div style={{ padding: '1.25rem', borderBottom: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: '600' }}>Recent Student Feedback</h3>
+                  <button 
+                    onClick={() => {
+                      if (!ratings.length) return;
+                      const exportData = ratings.map(r => ({
+                        'Student Name': r.students?.name || 'Anonymous Student',
+                        'Class': r.students?.class || '',
+                        'Rating': r.rating,
+                        'Feedback': r.feedback || '',
+                        'Date': new Date(r.created_at).toLocaleDateString()
+                      }));
+                      exportToCSV(exportData, `${selectedTeacher.name.replace(/\s+/g, '_')}_feedback_${new Date().toISOString().split('T')[0]}`);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.25rem 0.75rem', fontSize: '0.75rem' }}
+                  >
+                    <Download size={14} /> Export Feedback
+                  </button>
                  </div>
                  <div style={{ display: 'flex', flexDirection: 'column' }}>
                    {ratings.length > 0 ? ratings.map(r => (

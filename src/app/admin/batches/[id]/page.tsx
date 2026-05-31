@@ -49,7 +49,7 @@ export default function BatchDetailPage() {
       .eq('batch_id', id);
 
     if (sMapping) {
-      const studentList = sMapping.map((m: any) => m.students);
+      const studentList = sMapping.map((m: any) => ({ ...m.students, student_id: m.student_id }));
       setStudents(studentList);
     }
 
@@ -66,6 +66,28 @@ export default function BatchDetailPage() {
   useEffect(() => {
     loadBatchData();
   }, [id]);
+
+  const handleRemoveStudent = async (studentId: string) => {
+    if (!confirm('Are you sure you want to remove this student from the batch?')) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('batch_students')
+        .delete()
+        .eq('batch_id', id)
+        .eq('student_id', studentId);
+
+      if (error) throw error;
+      
+      setStudents(prev => prev.filter(s => s.student_id !== studentId));
+      alert('Student removed successfully');
+    } catch (err: any) {
+      console.error('Failed to remove student:', err);
+      alert('Failed to remove student from batch.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRemapTeacher = async () => {
     if (!selectedTeacherId) return;
@@ -242,7 +264,13 @@ export default function BatchDetailPage() {
                       <td>{student.class}</td>
                       <td>{new Date(student.join_date).toLocaleDateString()}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <button className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}>Remove</button>
+                        <button 
+                          className="btn btn-secondary" 
+                          style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none' }}
+                          onClick={() => handleRemoveStudent(student.student_id)}
+                        >
+                          Remove
+                        </button>
                       </td>
                     </tr>
                   ))}

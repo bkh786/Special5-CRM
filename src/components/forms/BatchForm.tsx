@@ -227,7 +227,7 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>Class *</label>
-          <select name="class" required className="input" style={{ width: '100%' }} value={formData.class} onChange={handleChange} disabled={isEdit}>
+          <select name="class" required className="input" style={{ width: '100%' }} value={formData.class} onChange={handleChange} >
              <option value="" disabled>Select Class</option>
              {['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'].map(c => (
                <option key={c} value={c}>{c}</option>
@@ -236,7 +236,7 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
         </div>
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>Subject *</label>
-          <select name="subject" required className="input" style={{ width: '100%' }} value={formData.subject} onChange={handleChange} disabled={isEdit}>
+          <select name="subject" required className="input" style={{ width: '100%' }} value={formData.subject} onChange={handleChange} >
              <option value="" disabled>Select Subject</option>
              {['All Subjects', 'English', 'Hindi', 'Maths', 'SST', 'Science'].map(s => (
                <option key={s} value={s}>{s}</option>
@@ -267,17 +267,17 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
                   color: formData.selectedDays.includes(day) ? 'var(--primary)' : '#64748b',
                   border: `1px solid ${formData.selectedDays.includes(day) ? 'var(--primary)' : '#e2e8f0'}`,
                   borderRadius: '6px',
-                  cursor: isEdit ? 'not-allowed' : 'pointer',
+                  cursor: 'pointer',
                   fontSize: '0.875rem',
                   fontWeight: '500',
-                  opacity: isEdit ? 0.7 : 1
+                  
                 }}
               >
                 <input 
                   type="checkbox" 
                   checked={formData.selectedDays.includes(day)}
                   onChange={() => handleDayToggle(day)}
-                  disabled={isEdit}
+                  
                   style={{ display: 'none' }}
                 />
                 {day}
@@ -297,7 +297,7 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
               style={{ paddingLeft: '2.5rem' }} 
               value={startTime} 
               onChange={(e) => setStartTime(e.target.value)} 
-              disabled={isEdit}
+              
             />
           </div>
         </div>
@@ -318,7 +318,7 @@ export default function BatchForm({ onSuccess, onCancel, initialData }: BatchFor
 
         <div>
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>Start Date *</label>
-          <input type="date" name="start_date" required className="input" value={formData.start_date} onChange={handleChange} disabled={isEdit} />
+          <input type="date" name="start_date" required className="input" value={formData.start_date} onChange={handleChange}  />
         </div>
         <div className="col-span-1">
           <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#475569', marginBottom: '0.5rem' }}>Max Students</label>

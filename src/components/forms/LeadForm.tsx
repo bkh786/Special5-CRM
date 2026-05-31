@@ -7,12 +7,13 @@ import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 interface LeadFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
 const CLASSES = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 const SUBJECT_OPTIONS = ['English', 'Hindi', 'Maths', 'SST', 'Science'];
 
-export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
+export default function LeadForm({ onSuccess, onCancel, initialData }: LeadFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -31,10 +32,33 @@ export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
     status: 'Received'
   });
 
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        student_name: initialData.student_name || '',
+        email_id: initialData.email_id || '',
+        class: initialData.class || '',
+        source: initialData.source || 'Website',
+        status: initialData.status || 'Received'
+      });
+      if (initialData.phone) {
+        let p = initialData.phone.toString();
+        if (p.startsWith('+91')) { setCountryCode('+91'); setPhoneNumber(p.slice(3)); }
+        else if (p.startsWith('+1')) { setCountryCode('+1'); setPhoneNumber(p.slice(2)); }
+        else if (p.startsWith('+44')) { setCountryCode('+44'); setPhoneNumber(p.slice(3)); }
+        else if (p.startsWith('+971')) { setCountryCode('+971'); setPhoneNumber(p.slice(4)); }
+        else { setCountryCode('+91'); setPhoneNumber(p.replace(/\D/g, '')); }
+      }
+      if (initialData.subjects) {
+        setSelectedSubjects(initialData.subjects.split(', '));
+      }
+    }
+  }, [initialData]);
+
   // Watch class changes to update subjects
   useEffect(() => {
     if (!formData.class) {
-      setSelectedSubjects([]);
+      if (!initialData) setSelectedSubjects([]);
       return;
     }
 
@@ -44,7 +68,7 @@ export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
       setSelectedSubjects(['All Subjects']);
     } else {
       // Clear if moving from primary to secondary so they have to pick
-      if (selectedSubjects.includes('All Subjects')) {
+      if (selectedSubjects.includes('All Subjects') && !initialData) {
          setSelectedSubjects([]);
       }
     }
@@ -80,10 +104,10 @@ export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
     const finalPhone = `${countryCode}${phoneNumber}`;
 
     try {
-      const { error: insertError } = await supabase
-        .from('leads')
-        .insert([
-          {
+      if (initialData) {
+        const { error: updateError } = await supabase
+          .from('leads')
+          .update({
             student_name: formData.student_name,
             phone: finalPhone,
             email_id: formData.email_id,
@@ -91,10 +115,26 @@ export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
             subjects: selectedSubjects.join(', '),
             source: formData.source,
             status: formData.status
-          }
-        ]);
+          })
+          .eq('lead_id', initialData.lead_id || initialData.id);
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('leads')
+          .insert([
+            {
+              student_name: formData.student_name,
+              phone: finalPhone,
+              email_id: formData.email_id,
+              class: formData.class,
+              subjects: selectedSubjects.join(', '),
+              source: formData.source,
+              status: formData.status
+            }
+          ]);
 
-      if (insertError) throw insertError;
+        if (insertError) throw insertError;
+      }
 
       setSuccess(true);
       setTimeout(() => {
@@ -126,8 +166,8 @@ export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
         }}>
           <CheckCircle size={32} />
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Lead Added Successfully!</h3>
-        <p style={{ color: '#64748b' }}>The new lead has been recorded in the database.</p>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1e293b', marginBottom: '0.5rem' }}>Lead {initialData ? 'Updated' : 'Added'} Successfully!</h3>
+        <p style={{ color: '#64748b' }}>The lead has been recorded in the database.</p>
       </div>
     );
   }
@@ -288,7 +328,7 @@ export default function LeadForm({ onSuccess, onCancel }: LeadFormProps) {
               Saving...
             </>
           ) : (
-            'Add Lead'
+            initialData ? 'Save Changes' : 'Add Lead'
           )}
         </button>
       </div>

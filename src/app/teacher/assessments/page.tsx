@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { useAuth } from '@/context/auth-context';
-import { Loader2, Save, GraduationCap, Plus, FileText, ExternalLink } from 'lucide-react';
+import { Loader2, Save, GraduationCap, Plus, FileText, ExternalLink, Download } from 'lucide-react';
 import ActionModal from '@/components/common/ActionModal';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function TeacherPerformanceEntryPage() {
   const { user } = useAuth();
@@ -24,24 +25,34 @@ export default function TeacherPerformanceEntryPage() {
     async function loadInitial() {
       if (!user) return;
       setLoading(true);
-      const { data: bData } = await supabase.from('batches').select('*').eq('teacher_id', user.id);
+      const [ { data: bData }, { data: aData } ] = await Promise.all([
+        supabase.from('batches').select('*').eq('teacher_id', user.id),
+        supabase.from('assessments').select('*').eq('teacher_id', user.id)
+      ]);
       if (bData) setBatches(bData);
+      if (aData) setAssessments(aData);
       setLoading(false);
     }
     loadInitial();
   }, [user]);
 
-  // Load assessments when batch changes
-  useEffect(() => {
-    async function loadAssessments() {
-      if (!selectedBatchId) return;
-      const { data } = await supabase.from('assessments').select('*').eq('batch_id', selectedBatchId);
-      if (data) setAssessments(data);
-      setSelectedAssessmentId(''); // Reset selector
+  // Handle assessment selection
+  const handleAssessmentSelect = (assessmentId: string) => {
+    setSelectedAssessmentId(assessmentId);
+    if (assessmentId) {
+      const asm = assessments.find(a => a.id === assessmentId);
+      if (asm && asm.batch_id && asm.batch_id !== selectedBatchId) {
+        setSelectedBatchId(asm.batch_id);
+      }
+    } else {
       setStudents([]);
+      setScores([]);
     }
-    loadAssessments();
-  }, [selectedBatchId]);
+  };
+
+  const filteredAssessments = selectedBatchId 
+    ? assessments.filter(a => a.batch_id === selectedBatchId) 
+    : assessments;
 
   // Load students & existing scores when assessment changes
   useEffect(() => {
@@ -159,20 +170,26 @@ export default function TeacherPerformanceEntryPage() {
               onClick={async () => {
                 if (!newAsm.title || !newAsm.link || !newAsm.batch_id || !user) return alert('Fill all fields');
                 setAsmLoading(true);
-                await supabase.from('assessments').insert([{
+                const { error } = await supabase.from('assessments').insert([{
                   title: newAsm.title,
                   google_form_link: newAsm.link,
                   batch_id: newAsm.batch_id,
                   teacher_id: user.id
                 }]);
                 setAsmLoading(false);
+                
+                if (error) {
+                  console.error('Error creating assessment:', error);
+                  alert('Error creating assessment: ' + error.message);
+                  return;
+                }
+                
                 setIsModalOpen(false);
                 setNewAsm({ title: '', link: '', batch_id: '' });
-                // Reload assessments if needed (state is already synced via useEffect on batchId changes)
-                if (selectedBatchId === newAsm.batch_id) {
-                   const { data } = await supabase.from('assessments').select('*').eq('batch_id', selectedBatchId);
-                   if (data) setAssessments(data);
-                }
+                
+                // Refresh all assessments for the teacher
+                const { data } = await supabase.from('assessments').select('*').eq('teacher_id', user.id);
+                if (data) setAssessments(data);
               }} 
               disabled={asmLoading}
               className="btn btn-primary" 
@@ -204,11 +221,10 @@ export default function TeacherPerformanceEntryPage() {
           <select 
             className="input" 
             value={selectedAssessmentId}
-            onChange={(e) => setSelectedAssessmentId(e.target.value)}
-            disabled={!selectedBatchId}
+            onChange={(e) => handleAssessmentSelect(e.target.value)}
           >
             <option value="">-- Choose Assessment Topic --</option>
-            {assessments.map(a => (
+            {filteredAssessments.map(a => (
               <option key={a.id} value={a.id}>{a.title} ({new Date(a.created_at).toLocaleDateString()})</option>
             ))}
           </select>
@@ -228,10 +244,31 @@ export default function TeacherPerformanceEntryPage() {
                 </div>
                 <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>Evaluation Roster</h2>
               </div>
-              <button onClick={handleSaveGrades} disabled={isSaving} className="btn btn-primary">
-                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
-                Publish Grades
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button 
+                  onClick={() => {
+                    if (!students.length) return;
+                    const exportData = students.map(student => {
+                      const activeScoreRow = scores.find(s => s.student_id === student.student_id);
+                      return {
+                        'Student Name': student.name,
+                        'Score / Marks': activeScoreRow?.score || '',
+                        'Analytical Remarks': activeScoreRow?.remarks || ''
+                      };
+                    });
+                    exportToCSV(exportData, `assessment_scores_${new Date().toISOString().split('T')[0]}`);
+                  }}
+                  className="btn btn-secondary"
+                  style={{ backgroundColor: '#f1f5f9', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
+                >
+                  <Download size={18} />
+                  Export Data
+                </button>
+                <button onClick={handleSaveGrades} disabled={isSaving} className="btn btn-primary">
+                  {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
+                  Publish Grades
+                </button>
+              </div>
             </div>
             
             <div className="table-container">

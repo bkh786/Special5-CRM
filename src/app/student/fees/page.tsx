@@ -16,6 +16,7 @@ export default function StudentFeesPage() {
   const [activeFee, setActiveFee] = useState<any>(null);
   const [utr, setUtr] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [globalQrUrl, setGlobalQrUrl] = useState('');
 
   useEffect(() => {
     async function loadFees() {
@@ -26,6 +27,8 @@ export default function StudentFeesPage() {
       setLoading(false);
     }
     loadFees();
+    const savedQr = localStorage.getItem('global_qr_code_url');
+    if (savedQr) setGlobalQrUrl(savedQr);
   }, [user]);
 
   const handlePayRequest = (fee: any) => {
@@ -66,7 +69,11 @@ export default function StudentFeesPage() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem', marginTop: '1rem' }}>
           
           <div style={{ padding: '1rem', border: '2px dashed var(--primary)', borderRadius: '12px', backgroundColor: '#f8fafc' }}>
-             <QrCode size={120} color="var(--primary)" />
+             {globalQrUrl ? (
+               <img src={globalQrUrl} alt="Admin UPI QR" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
+             ) : (
+               <QrCode size={120} color="var(--primary)" />
+             )}
           </div>
 
           <div style={{ textAlign: 'center' }}>

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import { CheckCircle2, XCircle, Search, RefreshCw, CreditCard, Banknote } from 'lucide-react';
+import { CheckCircle2, XCircle, Search, RefreshCw, CreditCard, Banknote, Download } from 'lucide-react';
 import ActionModal from '@/components/common/ActionModal';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function ConfirmPaymentsPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -61,11 +62,31 @@ export default function ConfirmPaymentsPage() {
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700' }}>Confirm Payment Status</h1>
           <p style={{ color: 'var(--muted)' }}>Verify and approve parent UTR/UPI payment submissions.</p>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={fetchTransactions} className="btn btn-secondary">
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button 
+            onClick={() => {
+              if (!transactions.length) return;
+              const exportData = transactions.map(tx => ({
+                'Student Name': tx.students?.name || 'Unknown',
+                'Class': tx.students?.class || '',
+                'Fee Month': tx.fees?.month || 'N/A',
+                'Amount': tx.amount,
+                'Payment Mode': tx.payment_mode,
+                'Transaction Details': tx.utr || tx.upi_id || 'N/A',
+                'Status': tx.status
+              }));
+              exportToCSV(exportData, `payments_export_${new Date().toISOString().split('T')[0]}`);
+            }}
+            className="btn btn-secondary"
+            style={{ backgroundColor: '#f1f5f9', color: 'var(--text-color)', border: '1px solid var(--border-color)' }}
+          >
+            <Download size={18} />
+            Export Data
+          </button>
         </div>
-        <button onClick={fetchTransactions} className="btn btn-secondary">
-          <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
-      </div>
 
       <ActionModal
         isOpen={!!selectedTx}

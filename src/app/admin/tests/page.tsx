@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import { FileText, Search, Filter, Loader2 } from 'lucide-react';
+import { FileText, Search, Filter, Loader2, Download } from 'lucide-react';
+import { exportToCSV } from '@/utils/exportToCSV';
 
 export default function TestsPage() {
   const [tests, setTests] = useState<any[]>([]);
@@ -60,7 +61,23 @@ export default function TestsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          <button 
+            onClick={() => {
+              if (!filteredData.length) return;
+              const exportData = filteredData.map(r => ({
+                'Month': r.month,
+                'Student Name': r.students?.name || 'Unknown',
+                'Class': r.students?.class,
+                'Subject': r.subject,
+                'Marks': r.marks,
+                'Remarks': r.remarks
+              }));
+              exportToCSV(exportData, `tests_export_${new Date().toISOString().split('T')[0]}`);
+            }}
+            className="btn btn-secondary"
+          >
+            <Download size={16} /> Export
+          </button>
           <button className="btn btn-secondary">
             <Filter size={16} /> Filter
           </button>
